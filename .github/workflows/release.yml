@@ -25,31 +25,78 @@ jobs:
       - name: Install Neutralino CLI
         run: npm install -g @neutralinojs/neu
 
-      - name: Build
-        run: npm run neu:build
+      - name: Build Vite assets
+        run: npm run build
 
-      - name: Package Linux x64
-        run: zip -j dist/tax-broker-26-linux_x64.zip dist/tax-broker-26/tax-broker-26-linux_x64 dist/tax-broker-26/resources.neu
+      # neu build on Linux creates resources.neu + linux_x64 binary in dist/tax-broker-26/
+      - name: Build NeutralinoJS
+        run: neu build
 
-      - name: Package Linux arm64
-        run: zip -j dist/tax-broker-26-linux_arm64.zip dist/tax-broker-26/tax-broker-26-linux_arm64 dist/tax-broker-26/resources.neu
+      - name: Extract version from tag
+        id: version
+        run: echo "value=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-      - name: Package Windows x64
-        run: zip -j dist/tax-broker-26-win_x64.zip dist/tax-broker-26/tax-broker-26-win_x64.exe dist/tax-broker-26/resources.neu
+      - name: Prepare release directory
+        run: mkdir -p release
 
-      - name: Package macOS universal
-        run: zip -j dist/tax-broker-26-mac_universal.zip dist/tax-broker-26/tax-broker-26-mac_universal dist/tax-broker-26/resources.neu
+      # Linux: binary comes from neu build output
+      - name: Package Linux x64 (fresh install)
+        run: |
+          zip -j release/tax-broker-26-linux_x64-v${{ steps.version.outputs.value }}.zip \
+            dist/tax-broker-26/tax-broker-26-linux_x64 \
+            dist/tax-broker-26/resources.neu \
+            install.sh
 
-      - name: Package macOS arm64
-        run: zip -j dist/tax-broker-26-mac_arm64.zip dist/tax-broker-26/tax-broker-26-mac_arm64 dist/tax-broker-26/resources.neu
+      # Windows / macOS: binaries come from bin/ — neu build only copies current-platform binary
+      - name: Package Windows x64 (fresh install)
+        run: |
+          cp bin/neutralino-win_x64.exe /tmp/tax-broker-26-win_x64.exe
+          zip -j release/tax-broker-26-win_x64-v${{ steps.version.outputs.value }}.zip \
+            /tmp/tax-broker-26-win_x64.exe \
+            dist/tax-broker-26/resources.neu
+
+      - name: Package macOS universal (fresh install)
+        run: |
+          cp bin/neutralino-mac_universal /tmp/tax-broker-26-mac_universal
+          zip -j release/tax-broker-26-mac_universal-v${{ steps.version.outputs.value }}.zip \
+            /tmp/tax-broker-26-mac_universal \
+            dist/tax-broker-26/resources.neu
+
+      # Standalone resources.neu for users who only want to update (no reinstall)
+      - name: Add update-only resources.neu
+        run: cp dist/tax-broker-26/resources.neu release/resources.neu
+
+      - name: Create update manifest
+        run: |
+          cat > release/update-manifest.json <<EOF
+          {
+            "version": "${{ steps.version.outputs.value }}",
+            "resourcesURL": "https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.value }}/resources.neu"
+          }
+          EOF
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: |
-            dist/tax-broker-26-linux_x64.zip
-            dist/tax-broker-26-linux_arm64.zip
-            dist/tax-broker-26-win_x64.zip
-            dist/tax-broker-26-mac_universal.zip
-            dist/tax-broker-26-mac_arm64.zip
+          files: release/*
+          body: |
+            ## Встановлення з нуля
+
+            ### Linux
+            1. Завантажте `tax-broker-26-linux_x64-v${{ steps.version.outputs.value }}.zip`
+            2. Розпакуйте в будь-яку папку
+            3. Запустіть: `bash install.sh`
+
+            ### Windows
+            1. Завантажте `tax-broker-26-win_x64-v${{ steps.version.outputs.value }}.zip`
+            2. Розпакуйте і запустіть `tax-broker-26-win_x64.exe`
+
+            ### macOS
+            1. Завантажте `tax-broker-26-mac_universal-v${{ steps.version.outputs.value }}.zip`
+            2. Розпакуйте і запустіть `tax-broker-26-mac_universal`
+
+            ---
+
+            ## Оновлення (без перевстановлення)
+            Замініть файл `resources.neu` в папці програми на завантажений `resources.neu` з цього релізу.

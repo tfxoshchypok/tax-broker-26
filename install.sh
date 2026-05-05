@@ -11,7 +11,7 @@ DESKTOP_DEST="$HOME/.local/share/applications/tax-broker-26.desktop"
 
 if [ ! -f "$BINARY" ]; then
   echo "❌ Binary not found: $BINARY"
-  echo "   Make sure you are running install.sh from the extracted zip directory."
+  echo "   Run install.sh from the extracted zip directory."
   exit 1
 fi
 
@@ -19,14 +19,13 @@ chmod +x "$BINARY"
 
 echo "▶ Installing icon..."
 mkdir -p "$HOME/.local/share/icons"
-# Use bundled icon if present, otherwise skip
 if [ -f "$DIR/icon.svg" ]; then
   cp "$DIR/icon.svg" "$ICON_DEST"
 fi
 
 echo "▶ Installing desktop launcher..."
 mkdir -p "$HOME/.local/share/applications"
-cat > "$DESKTOP_DEST" <<EOF
+cat > "$DESKTOP_DEST" <<DESKTOP
 [Desktop Entry]
 Type=Application
 Name=Tax-Broker-26
@@ -36,7 +35,7 @@ Icon=$ICON_DEST
 Terminal=false
 Categories=Office;Finance;
 StartupWMClass=tax-broker-26
-EOF
+DESKTOP
 
 update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
 
