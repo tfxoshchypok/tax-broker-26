@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Neutralino CLI
+        run: npm install -g @neutralinojs/neu
+
+      - name: Build
+        run: npm run neu:build
+
+      - name: Package Linux x64
+        run: zip -j dist/tax-broker-26-linux_x64.zip dist/tax-broker-26/tax-broker-26-linux_x64 dist/tax-broker-26/resources.neu
+
+      - name: Package Linux arm64
+        run: zip -j dist/tax-broker-26-linux_arm64.zip dist/tax-broker-26/tax-broker-26-linux_arm64 dist/tax-broker-26/resources.neu
+
+      - name: Package Windows x64
+        run: zip -j dist/tax-broker-26-win_x64.zip dist/tax-broker-26/tax-broker-26-win_x64.exe dist/tax-broker-26/resources.neu
+
+      - name: Package macOS universal
+        run: zip -j dist/tax-broker-26-mac_universal.zip dist/tax-broker-26/tax-broker-26-mac_universal dist/tax-broker-26/resources.neu
+
+      - name: Package macOS arm64
+        run: zip -j dist/tax-broker-26-mac_arm64.zip dist/tax-broker-26/tax-broker-26-mac_arm64 dist/tax-broker-26/resources.neu
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/tax-broker-26-linux_x64.zip
+            dist/tax-broker-26-linux_arm64.zip
+            dist/tax-broker-26-win_x64.zip
+            dist/tax-broker-26-mac_universal.zip
+            dist/tax-broker-26-mac_arm64.zip

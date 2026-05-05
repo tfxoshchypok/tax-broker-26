@@ -1,0 +1,33 @@
+{
+  "name": "tax-broker-26",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "neu:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && neu run --url=http://localhost:5173\"",
+    "neu:build": "vite build && neu build",
+    "neu:package-linux": "npm run neu:build && zip -j dist/tax-broker-26-linux_x64.zip dist/tax-broker-26/tax-broker-26-linux_x64 dist/tax-broker-26/resources.neu",
+    "neu:package-win": "npm run neu:build && zip -j dist/tax-broker-26-win_x64.zip dist/tax-broker-26/tax-broker-26-win_x64.exe dist/tax-broker-26/resources.neu",
+    "neu:package-mac": "npm run neu:build && zip -j dist/tax-broker-26-mac_universal.zip dist/tax-broker-26/tax-broker-26-mac_universal dist/tax-broker-26/resources.neu"
+  },
+  "dependencies": {
+    "@neutralinojs/lib": "^6.7.0",
+    "@vicons/ionicons5": "^0.13.0",
+    "dexie": "^4.0.11",
+    "naive-ui": "^2.41.0",
+    "pinia": "^2.3.0",
+    "valibot": "^1.3.1",
+    "vee-validate": "^4.15.0",
+    "vfonts": "^0.0.3",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.3",
+    "concurrently": "^9.1.2",
+    "vite": "^6.3.4",
+    "wait-on": "^9.0.5"
+  }
+}

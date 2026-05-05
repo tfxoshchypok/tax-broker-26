@@ -1,0 +1,46 @@
+{
+  "applicationId": "ua.taxbroker26.app",
+  "version": "0.1.0",
+  "defaultMode": "window",
+  "port": 5174,
+  "url": "/",
+  "documentRoot": "/dist/",
+  "enableServer": true,
+  "enableNativeAPI": true,
+  "tokenSecurity": "one-time",
+  "logging": {
+    "enabled": true,
+    "writeToLogFile": true
+  },
+  "nativeAllowList": [
+    "app.*",
+    "os.*",
+    "filesystem.*",
+    "storage.*",
+    "window.*",
+    "events.*",
+    "extensions.*"
+  ],
+  "globalVariables": {
+    "appVersion": "0.1.0"
+  },
+  "modes": {
+    "window": {
+      "title": "Tax-Broker-26",
+      "width": 1280,
+      "height": 800,
+      "minWidth": 960,
+      "minHeight": 600,
+      "resizable": true,
+      "maximize": false
+    }
+  },
+  "cli": {
+    "binaryName": "tax-broker-26",
+    "resourcesPath": "/dist/",
+    "extensionsPath": "/extensions/",
+    "clientLibrary": "/dist/neutralino.js",
+    "binaryVersion": "6.0.0",
+    "clientVersion": "6.7.0"
+  }
+}
