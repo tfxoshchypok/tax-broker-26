@@ -28,8 +28,12 @@ jobs:
       - name: Build Vite assets
         run: npm run build
 
-      # neu build on Linux creates resources.neu + linux_x64 binary in dist/tax-broker-26/
-      - name: Build NeutralinoJS
+      # Download all platform binaries into bin/ (bin/ is gitignored, must be fetched in CI)
+      - name: Download NeutralinoJS binaries (all platforms)
+        run: neu update
+
+      # Packages resources.neu from dist/ into dist/tax-broker-26/
+      - name: Build NeutralinoJS resources
         run: neu build
 
       - name: Extract version from tag
@@ -39,15 +43,16 @@ jobs:
       - name: Prepare release directory
         run: mkdir -p release
 
-      # Linux: binary comes from neu build output
+      # All platform binaries come from bin/ (populated by neu update above)
       - name: Package Linux x64 (fresh install)
         run: |
+          cp bin/neutralino-linux_x64 /tmp/tax-broker-26-linux_x64
+          chmod +x /tmp/tax-broker-26-linux_x64
           zip -j release/tax-broker-26-linux_x64-v${{ steps.version.outputs.value }}.zip \
-            dist/tax-broker-26/tax-broker-26-linux_x64 \
+            /tmp/tax-broker-26-linux_x64 \
             dist/tax-broker-26/resources.neu \
             install.sh
 
-      # Windows / macOS: binaries come from bin/ — neu build only copies current-platform binary
       - name: Package Windows x64 (fresh install)
         run: |
           cp bin/neutralino-win_x64.exe /tmp/tax-broker-26-win_x64.exe
