@@ -10,7 +10,9 @@
     "neu:build": "vite build && neu build",
     "neu:package-linux": "npm run neu:build && zip -j dist/tax-broker-26-linux_x64.zip dist/tax-broker-26/tax-broker-26-linux_x64 dist/tax-broker-26/resources.neu",
     "neu:package-win": "npm run neu:build && zip -j dist/tax-broker-26-win_x64.zip dist/tax-broker-26/tax-broker-26-win_x64.exe dist/tax-broker-26/resources.neu",
-    "neu:package-mac": "npm run neu:build && zip -j dist/tax-broker-26-mac_universal.zip dist/tax-broker-26/tax-broker-26-mac_universal dist/tax-broker-26/resources.neu"
+    "neu:package-mac": "npm run neu:build && zip -j dist/tax-broker-26-mac_universal.zip dist/tax-broker-26/tax-broker-26-mac_universal dist/tax-broker-26/resources.neu",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "dependencies": {
     "@neutralinojs/lib": "^6.7.0",
@@ -26,8 +28,12 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.3",
+    "@vue/test-utils": "^2.4.10",
     "concurrently": "^9.1.2",
+    "fake-indexeddb": "^6.2.5",
+    "happy-dom": "^20.9.0",
     "vite": "^6.3.4",
+    "vitest": "^4.1.6",
     "wait-on": "^9.0.5"
   }
 }
