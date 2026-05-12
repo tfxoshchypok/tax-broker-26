@@ -1,0 +1,5 @@
+import 'fake-indexeddb/auto'
+import '@/db/index.js'
+import '@/modules/tax/db.js'
+import '@/modules/billing/db.js'
+import '@/modules/payments/db.js'
