@@ -51,14 +51,16 @@ jobs:
           zip -j release/tax-broker-26-linux_x64-v${{ steps.version.outputs.value }}.zip \
             /tmp/tax-broker-26-linux_x64 \
             dist/tax-broker-26/resources.neu \
-            install.sh
+            install.sh \
+            public/icon.svg
 
       - name: Package Windows x64 (fresh install)
         run: |
           cp bin/neutralino-win_x64.exe /tmp/tax-broker-26-win_x64.exe
           zip -j release/tax-broker-26-win_x64-v${{ steps.version.outputs.value }}.zip \
             /tmp/tax-broker-26-win_x64.exe \
-            dist/tax-broker-26/resources.neu
+            dist/tax-broker-26/resources.neu \
+            install-launcher.ps1
 
       - name: Package macOS universal (fresh install)
         run: |
@@ -95,7 +97,9 @@ jobs:
 
             ### Windows
             1. Завантажте `tax-broker-26-win_x64-v${{ steps.version.outputs.value }}.zip`
-            2. Розпакуйте і запустіть `tax-broker-26-win_x64.exe`
+            2. Розпакуйте в окрему папку (наприклад `C:\Mini BUH\`)
+            3. Запустіть `tax-broker-26-win_x64.exe`
+            4. *(Опційно)* Правою кнопкою на `install-launcher.ps1` → «Запустити з PowerShell» — створить ярлик на робочому столі
 
             ### macOS
             1. Завантажте `tax-broker-26-mac_universal-v${{ steps.version.outputs.value }}.zip`
