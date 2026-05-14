@@ -22,6 +22,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Extract version from tag
+        id: version
+        run: echo "value=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Set version in config files
+        run: |
+          VERSION="${{ steps.version.outputs.value }}"
+          jq --arg v "$VERSION" '.version = $v' neutralino.config.json > /tmp/neu.tmp && mv /tmp/neu.tmp neutralino.config.json
+          npm version "$VERSION" --no-git-tag-version
+
       - name: Install Neutralino CLI
         run: npm install -g @neutralinojs/neu
 
@@ -35,10 +45,6 @@ jobs:
       # Packages resources.neu from dist/ into dist/tax-broker-26/
       - name: Build NeutralinoJS resources
         run: neu build
-
-      - name: Extract version from tag
-        id: version
-        run: echo "value=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Prepare release directory
         run: mkdir -p release

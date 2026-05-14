@@ -18,41 +18,38 @@
           </n-radio-group>
         </n-form-item-gi>
 
-        <template v-if="form.clientType === 'legal'">
-          <n-form-item-gi :span="2" label="Назва організації" path="company">
-            <n-input v-model:value="form.company" placeholder="ТОВ Ромашка" />
-          </n-form-item-gi>
-          <n-form-item-gi label="Контактна особа (прізвище)" path="lastName">
-            <n-input v-model:value="form.lastName" placeholder="Іванов" />
-          </n-form-item-gi>
-          <n-form-item-gi label="Контактна особа (ім'я)" path="firstName">
-            <n-input v-model:value="form.firstName" placeholder="Іван" />
-          </n-form-item-gi>
-        </template>
+        <!-- legal -->
+        <n-form-item-gi v-if="form.clientType === 'legal'" :span="2" label="Назва організації" path="company">
+          <n-input v-model:value="form.company" placeholder="ТОВ Ромашка" />
+        </n-form-item-gi>
+        <n-form-item-gi v-if="form.clientType === 'legal'" label="Контактна особа (прізвище)" path="lastName">
+          <n-input v-model:value="form.lastName" placeholder="Іванов" />
+        </n-form-item-gi>
+        <n-form-item-gi v-if="form.clientType === 'legal'" label="Контактна особа (ім'я)" path="firstName">
+          <n-input v-model:value="form.firstName" placeholder="Іван" />
+        </n-form-item-gi>
 
-        <template v-else-if="form.clientType === 'fop'">
-          <n-form-item-gi label="Прізвище" path="lastName">
-            <n-input v-model:value="form.lastName" placeholder="Іванов" />
-          </n-form-item-gi>
-          <n-form-item-gi label="Ім'я" path="firstName">
-            <n-input v-model:value="form.firstName" placeholder="Іван" />
-          </n-form-item-gi>
-        </template>
+        <!-- fop -->
+        <n-form-item-gi v-if="form.clientType === 'fop'" label="Прізвище" path="lastName">
+          <n-input v-model:value="form.lastName" placeholder="Іванов" />
+        </n-form-item-gi>
+        <n-form-item-gi v-if="form.clientType === 'fop'" label="Ім'я" path="firstName">
+          <n-input v-model:value="form.firstName" placeholder="Іван" />
+        </n-form-item-gi>
 
-        <template v-else>
-          <n-form-item-gi label="Прізвище" path="lastName">
-            <n-input v-model:value="form.lastName" placeholder="Іванов" />
-          </n-form-item-gi>
-          <n-form-item-gi label="Ім'я" path="firstName">
-            <n-input v-model:value="form.firstName" placeholder="Іван" />
-          </n-form-item-gi>
-          <n-form-item-gi label="Компанія" path="company">
-            <n-input v-model:value="form.company" placeholder="ТОВ Ромашка" />
-          </n-form-item-gi>
-          <n-form-item-gi label="Посада" path="position">
-            <n-input v-model:value="form.position" placeholder="Директор" />
-          </n-form-item-gi>
-        </template>
+        <!-- individual -->
+        <n-form-item-gi v-if="form.clientType === 'individual'" label="Прізвище" path="lastName">
+          <n-input v-model:value="form.lastName" placeholder="Іванов" />
+        </n-form-item-gi>
+        <n-form-item-gi v-if="form.clientType === 'individual'" label="Ім'я" path="firstName">
+          <n-input v-model:value="form.firstName" placeholder="Іван" />
+        </n-form-item-gi>
+        <n-form-item-gi v-if="form.clientType === 'individual'" label="Компанія" path="company">
+          <n-input v-model:value="form.company" placeholder="ТОВ Ромашка" />
+        </n-form-item-gi>
+        <n-form-item-gi v-if="form.clientType === 'individual'" label="Посада" path="position">
+          <n-input v-model:value="form.position" placeholder="Директор" />
+        </n-form-item-gi>
 
         <n-form-item-gi label="Телефон" path="phone">
           <n-input v-model:value="form.phone" placeholder="+380501234567" />

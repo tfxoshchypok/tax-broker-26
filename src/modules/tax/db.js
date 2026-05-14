@@ -38,6 +38,11 @@ db.version(8).stores({
   return tx.table('reportRules').bulkAdd(DEFAULT_REPORT_RULES)
 })
 
+// Seeding for fresh installs (upgrade() runs only on migration, not on first-ever DB creation)
+db.on('populate', async tx => {
+  await tx.table('reportRules').bulkAdd(DEFAULT_REPORT_RULES)
+})
+
 db.version(9).stores({
   clients:            '++id, lastName, email, phone, company, status, clientType, createdAt, archivedAt',
   interactions:       '++id, clientId, type, date',

@@ -31,3 +31,10 @@ db.version(5).stores({
   invoiceLines:       '++id, invoiceId, instanceId, ruleId, type, sortOrder',
   ownerProfile:       '++id',
 })
+
+// Seeding for fresh installs (upgrade() runs only on migration, not on first-ever DB creation)
+db.on('populate', async tx => {
+  await tx.table('serviceRates').bulkAdd(
+    DEFAULT_RATES.map(r => ({ ...r, updatedAt: Date.now() }))
+  )
+})
