@@ -29,7 +29,7 @@ jobs:
       - name: Set version in config files
         run: |
           VERSION="${{ steps.version.outputs.value }}"
-          jq --arg v "$VERSION" '.version = $v' neutralino.config.json > /tmp/neu.tmp && mv /tmp/neu.tmp neutralino.config.json
+          jq --arg v "$VERSION" '.version = $v | .globalVariables.appVersion = $v' neutralino.config.json > /tmp/neu.tmp && mv /tmp/neu.tmp neutralino.config.json
           npm version "$VERSION" --no-git-tag-version
 
       - name: Install Neutralino CLI

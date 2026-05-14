@@ -124,6 +124,13 @@
             </n-form>
           </n-card>
 
+          <n-card title="Скидання даних">
+            <p style="font-size: 13px; opacity: 0.65; margin-bottom: 12px;">
+              Видаляє всю базу даних і перезапускає апку. Після скидання довідники заповняться стандартними даними.
+            </p>
+            <n-button type="error" ghost @click="confirmReset">Скинути базу даних</n-button>
+          </n-card>
+
           <n-card title="Гарячі клавіші">
             <n-table :bordered="false" :single-line="false" size="small">
               <tbody>
@@ -151,7 +158,7 @@ import {
   NPageHeader, NTabs, NTabPane, NCard, NForm, NFormItem,
   NRadioGroup, NRadioButton, NTable, NTag, NSpace, NInput, NButton,
   NDescriptions, NDescriptionsItem, NAlert, NDivider, NScrollbar,
-  useMessage,
+  useMessage, useDialog,
 } from 'naive-ui'
 import { useUiStore } from '@/stores/ui.js'
 import { useOwnerProfileStore } from '@/stores/ownerProfile.js'
@@ -163,6 +170,7 @@ import { getCurrentVersionSync } from '@/services/UpdaterService.js'
 const ui = useUiStore()
 const ownerStore = useOwnerProfileStore()
 const message = useMessage()
+const dialog = useDialog()
 
 const activeTab    = ref('requisites')
 const ownerFormRef = ref(null)
@@ -201,6 +209,28 @@ onMounted(async () => {
   await ownerStore.load()
   if (ownerStore.profile) Object.assign(ownerForm, ownerStore.profile)
 })
+
+function confirmReset() {
+  dialog.error({
+    title: 'Скинути базу даних?',
+    content: 'Буде видалено всі дані: клієнти, рахунки, платежі, звіти. Дія незворотна.',
+    positiveText: 'Скинути',
+    negativeText: 'Скасувати',
+    async onPositiveClick() {
+      await new Promise((resolve, reject) => {
+        const req = indexedDB.deleteDatabase('MiniBuh')
+        req.onsuccess = resolve
+        req.onerror = () => reject(req.error)
+        req.onblocked = resolve
+      })
+      if (typeof Neutralino !== 'undefined') {
+        await Neutralino.app.restartProcess()
+      } else {
+        window.location.reload()
+      }
+    },
+  })
+}
 
 const SHORTCUTS = [
   { combo: 'Ctrl+N', desc: 'Новий клієнт' },
