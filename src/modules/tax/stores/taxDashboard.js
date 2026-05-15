@@ -10,6 +10,7 @@ import { db } from '@/db/index.js'
 
 function computeStatus(instance) {
   if (!instance) return 'pending'
+  if (instance.ignoredAt) return 'ignored'
   if (instance.submittedAt) return 'submitted'
   if (instance.contactedAt) return 'contacted'
   return 'pending'
@@ -75,13 +76,13 @@ export const useTaxDashboardStore = defineStore('taxDashboard', () => {
 
     const nowTs = Date.now()
 
-    // Sort: overdue → active → all submitted; within each bucket — alphabetically by client name
+    // Sort: overdue → active → all done; within each bucket — alphabetically by client name
     groups.sort((a, b) => {
       const score = (g) => {
-        const hasOverdue = g.reports.some(r => r.status !== 'submitted' && r.dueDate < nowTs)
-        const allSubmitted = g.reports.every(r => r.status === 'submitted')
+        const hasOverdue = g.reports.some(r => r.status !== 'submitted' && r.status !== 'ignored' && r.dueDate < nowTs)
+        const allDone = g.reports.every(r => r.status === 'submitted' || r.status === 'ignored')
         if (hasOverdue) return 0
-        if (!allSubmitted) return 1
+        if (!allDone) return 1
         return 2
       }
       const diff = score(a) - score(b)
@@ -127,6 +128,11 @@ export const useTaxDashboardStore = defineStore('taxDashboard', () => {
     await loadInstances()
   }
 
+  async function markIgnored(clientId, ruleId, period, dueDate) {
+    await TaxReportService.markIgnored(clientId, ruleId, period, dueDate)
+    await loadInstances()
+  }
+
   async function resetStatus(instanceId) {
     await TaxReportService.resetStatus(instanceId)
     await loadInstances()
@@ -140,7 +146,7 @@ export const useTaxDashboardStore = defineStore('taxDashboard', () => {
   return {
     year, month, viewMode, categoryFilter, statusFilter,
     groupedByClient, instances,
-    refresh, markContacted, markSubmitted, updateNotes, resetStatus,
+    refresh, markContacted, markSubmitted, markIgnored, updateNotes, resetStatus,
     prevMonth, nextMonth, setViewMode,
   }
 })

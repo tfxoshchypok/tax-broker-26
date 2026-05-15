@@ -1,5 +1,5 @@
 <template>
-  <div class="report-row" :class="{ 'report-row--overdue': isOverdue }">
+  <div class="report-row" :class="{ 'report-row--overdue': isOverdue, 'report-row--ignored': report.status === 'ignored' }">
     <TaxReportStatusBadge :status="report.status" />
 
     <span class="report-name">{{ report.rule.shortName }}</span>
@@ -10,7 +10,12 @@
     </span>
 
     <div class="report-actions">
-      <template v-if="report.status === 'submitted'">
+      <template v-if="report.status === 'ignored'">
+        <n-button text size="small" @click="$emit('reset', report)">
+          <template #icon><n-icon><RefreshOutline /></n-icon></template>
+        </n-button>
+      </template>
+      <template v-else-if="report.status === 'submitted'">
         <span class="action-text action-text--green">
           Здано {{ formatDate(report.instance?.submittedAt) }}
         </span>
@@ -23,9 +28,12 @@
           Повідом. {{ formatDate(report.instance?.contactedAt) }}
         </span>
         <n-button size="small" type="primary" ghost @click="$emit('submit', report)">Здано</n-button>
+        <n-button text size="small" @click="$emit('ignore', report)">
+          <template #icon><n-icon><BanOutline /></n-icon></template>
+        </n-button>
       </template>
 
-      <n-popover trigger="click" placement="bottom-end" :width="220">
+      <n-popover v-if="report.status !== 'ignored'" trigger="click" placement="bottom-end" :width="220">
         <template #trigger>
           <n-button text size="small" :type="report.instance?.notes ? 'warning' : 'default'">
             <template #icon><n-icon><CreateOutline /></n-icon></template>
@@ -46,17 +54,17 @@
 <script setup>
 import { computed } from 'vue'
 import { NButton, NIcon, NPopover, NInput } from 'naive-ui'
-import { RefreshOutline, CreateOutline } from '@vicons/ionicons5'
+import { RefreshOutline, CreateOutline, BanOutline } from '@vicons/ionicons5'
 import TaxReportStatusBadge from './TaxReportStatusBadge.vue'
 
 const props = defineProps({
   report: { type: Object, required: true },
 })
 
-const emit = defineEmits(['submit', 'reset', 'notes'])
+const emit = defineEmits(['submit', 'reset', 'ignore', 'notes'])
 
 const isOverdue = computed(
-  () => props.report.status !== 'submitted' && props.report.dueDate < Date.now()
+  () => props.report.status !== 'submitted' && props.report.status !== 'ignored' && props.report.dueDate < Date.now()
 )
 
 function formatDate(ts) {
@@ -85,6 +93,10 @@ function onNotesBlur(event, report) {
 
 .report-row--overdue {
   background: rgba(208, 48, 80, 0.05);
+}
+
+.report-row--ignored {
+  opacity: 0.45;
 }
 
 .report-name {

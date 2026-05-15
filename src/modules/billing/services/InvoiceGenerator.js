@@ -15,6 +15,8 @@ export const InvoiceGenerator = {
         inst => inst.ruleId === rule.id && inst.period === period
       ) ?? null
 
+      if (instance?.ignoredAt) continue
+
       lines.push({
         type: 'auto',
         ruleId: rule.id,

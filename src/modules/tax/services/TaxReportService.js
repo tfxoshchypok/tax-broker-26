@@ -66,6 +66,21 @@ export const TaxReportService = {
     }
   },
 
+  async markIgnored(clientId, ruleId, period, dueDate) {
+    const existing = await TaxReportService.getInstance(clientId, ruleId, period)
+    const now = Date.now()
+    if (existing) {
+      await db.taxReportInstances.update(existing.id, {
+        ignoredAt: now, contactedAt: null, submittedAt: null, updatedAt: now,
+      })
+    } else {
+      await db.taxReportInstances.add({
+        clientId: Number(clientId), ruleId, period, dueDate,
+        ignoredAt: now, contactedAt: null, submittedAt: null, notes: '', updatedAt: now,
+      })
+    }
+  },
+
   async updateNotes(id, notes) {
     await db.taxReportInstances.update(id, { notes, updatedAt: Date.now() })
   },

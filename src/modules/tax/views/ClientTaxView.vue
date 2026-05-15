@@ -80,6 +80,7 @@
             @contact="onContact(report)"
             @submit="onSubmit(report)"
             @reset="onReset(report)"
+            @ignore="onIgnore($event)"
             @notes="onNotes($event)"
           />
         </div>
@@ -95,6 +96,7 @@ import { ChevronBackOutline, ChevronForwardOutline, ReceiptOutline } from '@vico
 import { useRouter } from 'vue-router'
 import { useClientsStore } from '@/stores/clients.js'
 import { useTaxProfilesStore } from '../stores/taxProfiles.js'
+import { useReportRulesStore } from '../stores/reportRules.js'
 import { TaxReportService } from '../services/TaxReportService.js'
 import { getExpectedReports } from '../services/TaxReportEngine.js'
 import TaxProfileForm from '../components/TaxProfileForm.vue'
@@ -108,6 +110,7 @@ const props = defineProps({
 const router = useRouter()
 const clientsStore = useClientsStore()
 const profilesStore = useTaxProfilesStore()
+const rulesStore = useReportRulesStore()
 const loading = ref(false)
 const reportsLoading = ref(false)
 const editing = ref(false)
@@ -146,13 +149,15 @@ const specialTaxes = computed(() => {
 
 const reports = computed(() => {
   if (!profile.value) return []
-  return getExpectedReports(profile.value, year.value, month.value)
+  const client = clientsStore.list.find(c => c.id === Number(props.clientId))
+  const profileWithType = client ? { ...profile.value, clientType: client.clientType } : profile.value
+  return getExpectedReports(profileWithType, year.value, month.value, rulesStore.activeForEngine)
     .filter(({ dueDate }) => dueDate >= props.createdAt)
     .map(({ rule, period, dueDate }) => {
       const instance = instances.value.find(
         i => i.clientId === Number(props.clientId) && i.ruleId === rule.id && i.period === period
       ) ?? null
-      const status = instance?.submittedAt ? 'submitted' : instance?.contactedAt ? 'contacted' : 'pending'
+      const status = instance?.ignoredAt ? 'ignored' : instance?.submittedAt ? 'submitted' : instance?.contactedAt ? 'contacted' : 'pending'
       return { rule, period, dueDate, status, instance }
     })
 })
@@ -165,6 +170,8 @@ async function loadInstances() {
 
 async function load() {
   loading.value = true
+  if (clientsStore.list.length === 0) await clientsStore.fetchAll()
+  if (rulesStore.list.length === 0) await rulesStore.fetchAll()
   await profilesStore.load(props.clientId)
   loading.value = false
   await loadInstances()
@@ -201,6 +208,11 @@ async function onNotes({ report, notes }) {
 }
 
 const hasPendingReports = computed(() => reports.value.some(r => r.status === 'pending'))
+
+async function onIgnore(report) {
+  await TaxReportService.markIgnored(props.clientId, report.rule.id, report.period, report.dueDate)
+  await loadInstances()
+}
 
 async function contactAll() {
   const pending = reports.value.filter(r => r.status === 'pending')

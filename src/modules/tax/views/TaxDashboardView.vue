@@ -32,6 +32,7 @@
             <n-checkbox value="pending">Очікується</n-checkbox>
             <n-checkbox value="contacted">Повідомлено</n-checkbox>
             <n-checkbox value="submitted">Здано</n-checkbox>
+            <n-checkbox value="ignored">Ігноровано</n-checkbox>
           </n-space>
         </n-checkbox-group>
 
@@ -79,6 +80,7 @@
           @contact-client="onContactClient"
           @submit="onSubmit"
           @reset="onReset"
+          @ignore="onIgnore"
           @notes="onNotes"
           @create-invoice="onCreateInvoice"
         />
@@ -123,14 +125,14 @@ async function loadInvoices() {
 watch(currentPeriod, loadInvoices)
 
 const CATEGORIES = [
-  { value: 'unified_tax', label: 'ЄП' },
-  { value: 'vat',         label: 'ПДВ' },
-  { value: 'income_tax',  label: 'ПДФО' },
-  { value: 'employees',   label: 'ЄСВ' },
-  { value: 'excise',      label: 'Акциз' },
-  { value: 'land',        label: 'Земля' },
-  { value: 'environmental', label: 'Еко' },
-  { value: 'rent',        label: 'Рента' },
+  { value: 'income',     label: 'Прибуток' },
+  { value: 'vat_excise', label: 'ПДВ+акциз' },
+  { value: 'local',      label: 'Місцеві' },
+  { value: 'resource',   label: 'Ресурсні' },
+  { value: 'rent',       label: 'Рентні' },
+  { value: 'financial',  label: 'Фінзвітність' },
+  { value: 'esv',        label: 'ЄСВ' },
+  { value: 'other',      label: 'Інші' },
 ]
 
 const UA_MONTHS = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень']
@@ -157,6 +159,10 @@ async function onSubmit({ client, report }) {
 
 async function onReset(report) {
   if (report.instance?.id) await store.resetStatus(report.instance.id)
+}
+
+async function onIgnore({ client, report }) {
+  await store.markIgnored(client.id, report.rule.id, report.period, report.dueDate)
 }
 
 async function onNotes({ report, notes }) {

@@ -58,6 +58,7 @@
           :report="report"
           @submit="$emit('submit', { client: group.client, report: $event })"
           @reset="$emit('reset', $event)"
+          @ignore="$emit('ignore', { client: group.client, report: $event })"
           @notes="$emit('notes', $event)"
         />
       </template>
@@ -69,6 +70,8 @@
           :key="report.rule.id + report.period"
           :report="report"
           @submit="$emit('submit', { client: group.client, report: $event })"
+          @reset="$emit('reset', $event)"
+          @ignore="$emit('ignore', { client: group.client, report: $event })"
         />
       </div>
     </div>
@@ -88,7 +91,7 @@ const props = defineProps({
   invoice:  { type: Object, default: null },
 })
 
-defineEmits(['contact-client', 'submit', 'reset', 'notes', 'create-invoice'])
+defineEmits(['contact-client', 'submit', 'reset', 'ignore', 'notes', 'create-invoice'])
 
 const INVOICE_STATUS = {
   draft:     { label: 'Чернетка',     type: 'default' },
@@ -112,19 +115,19 @@ function formatDate(ts) {
 const hasPending = computed(() => props.group.reports.some(r => r.status === 'pending'))
 const pendingReports = computed(() => props.group.reports.filter(r => r.status === 'pending'))
 
+
 const expanded = ref(true)
 
 function toggle() { expanded.value = !expanded.value }
 
 const hasOverdue = computed(() =>
-  props.group.reports.some(r => r.status !== 'submitted' && r.dueDate < Date.now())
+  props.group.reports.some(r => r.status !== 'submitted' && r.status !== 'ignored' && r.dueDate < Date.now())
 )
 
 const sortedReports = computed(() => {
   return [...props.group.reports].sort((a, b) => {
-    // Overdue first, then by dueDate
-    const aOverdue = a.status !== 'submitted' && a.dueDate < Date.now()
-    const bOverdue = b.status !== 'submitted' && b.dueDate < Date.now()
+    const aOverdue = a.status !== 'submitted' && a.status !== 'ignored' && a.dueDate < Date.now()
+    const bOverdue = b.status !== 'submitted' && b.status !== 'ignored' && b.dueDate < Date.now()
     if (aOverdue !== bOverdue) return aOverdue ? -1 : 1
     return a.dueDate - b.dueDate
   })
