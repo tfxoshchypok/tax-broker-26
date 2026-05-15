@@ -43,6 +43,36 @@ db.on('populate', async tx => {
   await tx.table('reportRules').bulkAdd(DEFAULT_REPORT_RULES)
 })
 
+db.version(10).stores({
+  clients:            '++id, lastName, email, phone, company, status, clientType, createdAt, archivedAt',
+  interactions:       '++id, clientId, type, date',
+  tags:               '++id, &name',
+  clientTags:         '++id, clientId, tagId',
+  taxProfiles:        '++id, &clientId',
+  taxReportInstances: '++id, clientId, ruleId, period, dueDate, status, [clientId+ruleId+period]',
+  serviceRates:       '++id, ruleId, active',
+  serviceRateHistory: '++id, rateId, changedAt',
+  invoices:           '++id, clientId, period, number, status, createdAt',
+  invoiceLines:       '++id, invoiceId, instanceId, ruleId, type, sortOrder',
+  ownerProfile:       '++id',
+  payments:           '++id, clientId, date, method, createdAt',
+  paymentInvoices:    '++id, paymentId, invoiceId, &[paymentId+invoiceId]',
+  reportRules:        '++id, &ruleId, category, active',
+}).upgrade(async tx => {
+  const CATEGORY_MAP = {
+    unified_tax:   'income',
+    vat:           'vat_excise',
+    income_tax:    'income',
+    employees:     'esv',
+    excise:        'vat_excise',
+    land:          'local',
+    environmental: 'resource',
+  }
+  await tx.table('reportRules').toCollection().modify(rule => {
+    if (CATEGORY_MAP[rule.category]) rule.category = CATEGORY_MAP[rule.category]
+  })
+})
+
 db.version(9).stores({
   clients:            '++id, lastName, email, phone, company, status, clientType, createdAt, archivedAt',
   interactions:       '++id, clientId, type, date',

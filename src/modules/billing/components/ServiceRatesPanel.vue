@@ -31,8 +31,8 @@
               :value="getPriceLocal(rate)"
               size="small"
               :min="0"
-              :precision="2"
-              style="width: 110px;"
+              :precision="0"
+              style="width: 120px;"
               @update:value="val => updatePriceLocal(rate, val)"
               @blur="() => savePriceOnBlur(rate)"
             >
@@ -92,8 +92,8 @@
               :value="getPriceLocal(rate)"
               size="small"
               :min="0"
-              :precision="2"
-              style="width: 110px;"
+              :precision="0"
+              style="width: 120px;"
               @update:value="val => updatePriceLocal(rate, val)"
               @blur="() => savePriceOnBlur(rate)"
             >
@@ -123,7 +123,7 @@
           <n-input v-model:value="addForm.name" placeholder="Назва послуги" />
         </n-form-item>
         <n-form-item label="Ціна (грн)">
-          <n-input-number v-model:value="addForm.price" :min="0" :precision="2" style="width: 100%;" />
+          <n-input-number v-model:value="addForm.price" :min="0" :precision="0" style="width: 100%;" />
         </n-form-item>
       </n-form>
       <template #action>

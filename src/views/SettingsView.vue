@@ -157,17 +157,58 @@
       </n-tab-pane>
 
     </n-tabs>
+
+    <n-modal
+      v-model:show="showResetModal"
+      preset="card"
+      title="Скинути базу даних?"
+      style="width: 420px;"
+      :mask-closable="false"
+    >
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        <n-icon size="48" color="#d03050"><WarningOutline /></n-icon>
+        <p style="font-size: 13px; opacity: 0.65; margin: 0;">
+          Буде видалено всі дані: клієнти, рахунки, платежі, звіти. Дія незворотна.
+        </p>
+      </div>
+      <n-form-item
+        label="Пароль підтвердження"
+        :validation-status="resetPassword && !isResetPasswordCorrect ? 'error' : undefined"
+        :feedback="resetPassword && !isResetPasswordCorrect ? 'Невірний пароль' : ''"
+      >
+        <n-input
+          v-model:value="resetPassword"
+          placeholder="Введіть пароль..."
+          @keyup.enter="doReset"
+        />
+      </n-form-item>
+      <template #footer>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <n-button @click="showResetModal = false">Скасувати</n-button>
+          <n-button
+            type="error"
+            :disabled="!isResetPasswordCorrect"
+            :loading="resetResetting"
+            @click="doReset"
+          >
+            Скинути
+          </n-button>
+        </div>
+      </template>
+    </n-modal>
+
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import {
   NPageHeader, NTabs, NTabPane, NCard, NForm, NFormItem,
   NRadioGroup, NRadioButton, NTable, NTag, NSpace, NInput, NButton, NSwitch,
-  NDescriptions, NDescriptionsItem, NAlert, NDivider, NScrollbar,
-  useMessage, useDialog,
+  NDescriptions, NDescriptionsItem, NAlert, NDivider, NScrollbar, NModal, NIcon,
+  useMessage,
 } from 'naive-ui'
+import { WarningOutline } from '@vicons/ionicons5'
 import { useUiStore } from '@/stores/ui.js'
 import { useOwnerProfileStore } from '@/stores/ownerProfile.js'
 import ServiceRatesPanel from '@/modules/billing/components/ServiceRatesPanel.vue'
@@ -178,7 +219,6 @@ import { getCurrentVersionSync } from '@/services/UpdaterService.js'
 const ui = useUiStore()
 const ownerStore = useOwnerProfileStore()
 const message = useMessage()
-const dialog = useDialog()
 
 const activeTab    = ref('requisites')
 const ownerFormRef = ref(null)
@@ -218,26 +258,38 @@ onMounted(async () => {
   if (ownerStore.profile) Object.assign(ownerForm, ownerStore.profile)
 })
 
+const showResetModal    = ref(false)
+const resetPassword     = ref('')
+const resetResetting    = ref(false)
+
+const expectedResetPassword = computed(() => {
+  const d = new Date()
+  return String(d.getDate()) + String(d.getMonth() + 1)
+})
+
+const isResetPasswordCorrect = computed(() =>
+  resetPassword.value === expectedResetPassword.value
+)
+
 function confirmReset() {
-  dialog.error({
-    title: 'Скинути базу даних?',
-    content: 'Буде видалено всі дані: клієнти, рахунки, платежі, звіти. Дія незворотна.',
-    positiveText: 'Скинути',
-    negativeText: 'Скасувати',
-    async onPositiveClick() {
-      await new Promise((resolve, reject) => {
-        const req = indexedDB.deleteDatabase('MiniBuh')
-        req.onsuccess = resolve
-        req.onerror = () => reject(req.error)
-        req.onblocked = resolve
-      })
-      if (typeof Neutralino !== 'undefined') {
-        await Neutralino.app.restartProcess()
-      } else {
-        window.location.reload()
-      }
-    },
+  resetPassword.value = ''
+  showResetModal.value = true
+}
+
+async function doReset() {
+  if (!isResetPasswordCorrect.value) return
+  resetResetting.value = true
+  await new Promise((resolve, reject) => {
+    const req = indexedDB.deleteDatabase('MiniBuh')
+    req.onsuccess = resolve
+    req.onerror = () => reject(req.error)
+    req.onblocked = resolve
   })
+  if (typeof Neutralino !== 'undefined') {
+    await Neutralino.app.restartProcess()
+  } else {
+    window.location.reload()
+  }
 }
 
 const SHORTCUTS = [

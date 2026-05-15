@@ -9,11 +9,11 @@ export const BillingService = {
   },
 
   async getActiveRates() {
-    return db.serviceRates.where('active').equals(true).toArray()
+    return db.serviceRates.filter(r => r.active).toArray()
   },
 
   async getAutoRates() {
-    return db.serviceRates.where('active').equals(true).filter(r => r.autoInclude).toArray()
+    return db.serviceRates.filter(r => r.active && r.autoInclude).toArray()
   },
 
   async saveRate(id, data) {
@@ -32,7 +32,7 @@ export const BillingService = {
   },
 
   async addRate(data) {
-    return db.serviceRates.add({ ...data, ruleId: null, updatedAt: Date.now() })
+    return db.serviceRates.add({ ruleId: null, ...data, updatedAt: Date.now() })
   },
 
   async deleteRate(id) {

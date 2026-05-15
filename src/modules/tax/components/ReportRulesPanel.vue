@@ -181,6 +181,14 @@
           </div>
         </n-form-item>
 
+        <n-divider title-placement="left" style="margin: 4px 0 12px;">Послуга</n-divider>
+
+        <n-form-item label="Вартість оформлення (грн)">
+          <n-input-number v-model:value="form.price" :min="0" :precision="0" style="width: 160px;">
+            <template #suffix>грн</template>
+          </n-input-number>
+        </n-form-item>
+
         <n-form-item label="Активний">
           <n-switch v-model:value="form.active" />
         </n-form-item>
@@ -210,6 +218,7 @@ import {
 } from 'naive-ui'
 import { AddOutline, CreateOutline, TrashOutline, CloseOutline } from '@vicons/ionicons5'
 import { useReportRulesStore } from '../stores/reportRules.js'
+import { BillingService } from '@/modules/billing/services/BillingService.js'
 
 const store = useReportRulesStore()
 const dialog = useDialog()
@@ -222,26 +231,36 @@ const editing = ref(null)
 const formRef = ref(null)
 
 const CATEGORY_OPTIONS = [
-  { label: 'Єдиний податок (ЄП)', value: 'unified_tax' },
-  { label: 'ПДВ', value: 'vat' },
-  { label: 'ПДФО', value: 'income_tax' },
-  { label: 'ЄСВ / Наймані', value: 'employees' },
-  { label: 'Акцизний', value: 'excise' },
-  { label: 'Земельний', value: 'land' },
-  { label: 'Екологічний', value: 'environmental' },
-  { label: 'Рентна плата', value: 'rent' },
+  { label: 'Прибуток',      value: 'income' },
+  { label: 'ПДВ+акциз',    value: 'vat_excise' },
+  { label: 'Місцеві',      value: 'local' },
+  { label: 'Ресурсні',     value: 'resource' },
+  { label: 'Рентні',       value: 'rent' },
+  { label: 'Фінзвітність', value: 'financial' },
+  { label: 'ЄСВ',          value: 'esv' },
+  { label: 'Інші',         value: 'other' },
 ]
 
 const CATEGORY_LABELS = {
-  unified_tax: 'ЄП', vat: 'ПДВ', income_tax: 'ПДФО',
-  employees: 'ЄСВ', excise: 'Акциз', land: 'Земля',
-  environmental: 'Еко', rent: 'Рента',
+  income:    'Прибуток',
+  vat_excise: 'ПДВ+акциз',
+  local:     'Місцеві',
+  resource:  'Ресурсні',
+  rent:      'Рентні',
+  financial: 'Фінзвітність',
+  esv:       'ЄСВ',
+  other:     'Інші',
 }
 
 const CATEGORY_TYPES = {
-  unified_tax: 'info', vat: 'warning', income_tax: 'success',
-  employees: 'primary', excise: 'error', land: 'default',
-  environmental: 'default', rent: 'default',
+  income:    'success',
+  vat_excise: 'warning',
+  local:     'info',
+  resource:  'primary',
+  rent:      'default',
+  financial: 'info',
+  esv:       'error',
+  other:     'default',
 }
 
 const FREQUENCY_LABELS = {
@@ -269,9 +288,10 @@ const GROUP_OPTIONS = [
 const EMPTY_FORM = () => ({
   name: '',
   shortName: '',
-  category: 'unified_tax',
+  category: 'income',
   frequency: 'annual',
   active: true,
+  price: 0,
   dlDay: 28,
   dlMonth: 2,
   dlDays: 40,
@@ -402,28 +422,40 @@ function openCreate() {
   formVisible.value = true
 }
 
-function openEdit(rule) {
+async function openEdit(rule) {
   editing.value = rule
   applyRecord(rule)
+  const allRates = await BillingService.getAllRates()
+  const rate = allRates.find(r => r.ruleId === rule.ruleId)
+  form.price = rate?.price ?? 0
   formVisible.value = true
 }
 
 async function save() {
-  await formRef.value.validate()
-
-  if (form.frequency === 'fixed_dates' && form.dlDates.length === 0) {
-    message.error('Додайте хоча б одну дату подачі')
-    return
-  }
-
   saving.value = true
   try {
+    await formRef.value.validate()
+
+    if (form.frequency === 'fixed_dates' && form.dlDates.length === 0) {
+      message.error('Додайте хоча б одну дату подачі')
+      return
+    }
+
     const data = buildRecord()
     if (editing.value) {
       await store.update(editing.value.id, data)
+      const allRates = await BillingService.getAllRates()
+      const rate = allRates.find(r => r.ruleId === editing.value.ruleId)
+      if (rate) {
+        await BillingService.saveRate(rate.id, { ...rate, price: form.price })
+      } else {
+        await BillingService.addRate({ ruleId: editing.value.ruleId, name: data.name, price: form.price, active: true, autoInclude: true })
+      }
       message.success('Звіт оновлено')
     } else {
-      await store.create({ ...data, ruleId: `custom_${Date.now()}` })
+      const ruleId = `custom_${Date.now()}`
+      await store.create({ ...data, ruleId })
+      await BillingService.addRate({ ruleId, name: data.name, price: form.price, active: true, autoInclude: true })
       message.success('Звіт створено')
     }
     formVisible.value = false

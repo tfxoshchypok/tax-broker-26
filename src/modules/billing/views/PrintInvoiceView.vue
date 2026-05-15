@@ -82,6 +82,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { useClientsStore } from '@/stores/clients.js'
 import { useOwnerProfileStore } from '@/stores/ownerProfile.js'
 import { useUiStore } from '@/stores/ui.js'
@@ -89,6 +90,7 @@ import { BillingService } from '../services/BillingService.js'
 
 const props = defineProps({ id: { type: String, required: true } })
 
+const router       = useRouter()
 const clientsStore = useClientsStore()
 const ownerStore   = useOwnerProfileStore()
 const ui           = useUiStore()
@@ -150,6 +152,9 @@ onMounted(async () => {
   lines.value   = await BillingService.getLinesByInvoiceId(props.id)
   loading.value = false
   await nextTick()
+  window.addEventListener('afterprint', () => {
+    router.replace({ name: 'billing-invoice', params: { id: props.id } })
+  }, { once: true })
   window.print()
 })
 </script>

@@ -1,9 +1,7 @@
 <template>
   <div class="view-container">
-    <n-page-header title="Новий рахунок" @back="$router.back()">
-      <template #subtitle>
-        <span v-if="client">{{ clientName }} · {{ periodLabel }}</span>
-      </template>
+    <n-page-header :title="client ? `${clientName} · ${periodLabel}` : 'Новий рахунок'" @back="$router.back()">
+      <template #subtitle>Новий рахунок</template>
     </n-page-header>
 
     <n-spin :show="loading" style="margin-top: 20px;">
@@ -75,6 +73,7 @@ import {
 } from 'naive-ui'
 import { useClientsStore } from '@/stores/clients.js'
 import { useTaxProfilesStore } from '@/modules/tax/stores/taxProfiles.js'
+import { useReportRulesStore } from '@/modules/tax/stores/reportRules.js'
 import { getExpectedReports } from '@/modules/tax/services/TaxReportEngine.js'
 import { TaxReportService } from '@/modules/tax/services/TaxReportService.js'
 import { BillingService } from '../services/BillingService.js'
@@ -85,6 +84,7 @@ const router = useRouter()
 const route  = useRoute()
 const clientsStore = useClientsStore()
 const profilesStore = useTaxProfilesStore()
+const rulesStore = useReportRulesStore()
 const message = useMessage()
 
 const clientId = computed(() => Number(route.query.clientId))
@@ -221,6 +221,7 @@ async function confirm()    { await saveInvoice('confirmed') }
 onMounted(async () => {
   loading.value = true
   if (clientsStore.list.length === 0) await clientsStore.fetchAll()
+  if (rulesStore.list.length === 0) await rulesStore.fetchAll()
   client.value = clientsStore.list.find(c => c.id === clientId.value) ?? null
 
   // Check for duplicate
@@ -229,7 +230,10 @@ onMounted(async () => {
 
   // Load tax profile
   await profilesStore.load(clientId.value)
-  taxProfile.value = profilesStore.getProfile(clientId.value)
+  const rawProfile = profilesStore.getProfile(clientId.value)
+  taxProfile.value = rawProfile && client.value
+    ? { ...rawProfile, clientType: client.value.clientType }
+    : rawProfile
 
   if (existingInvoice.value) {
     const existingLines = await BillingService.getLinesByInvoiceId(existingInvoice.value.id)
@@ -239,7 +243,7 @@ onMounted(async () => {
   rates.value = await BillingService.getActiveRates()
 
   if (taxProfile.value) {
-    const allExpectedReports = getExpectedReports(taxProfile.value, periodYear.value, periodMonth.value)
+    const allExpectedReports = getExpectedReports(taxProfile.value, periodYear.value, periodMonth.value, rulesStore.activeForEngine)
     const uncoveredReports = existingInvoice.value
       ? allExpectedReports.filter(r => !coveredRuleIds.value.has(r.rule.id))
       : allExpectedReports
