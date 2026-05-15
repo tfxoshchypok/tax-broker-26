@@ -30,7 +30,7 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.value }}"
           jq --arg v "$VERSION" '.version = $v | .globalVariables.appVersion = $v' neutralino.config.json > /tmp/neu.tmp && mv /tmp/neu.tmp neutralino.config.json
-          npm version "$VERSION" --no-git-tag-version
+          jq --arg v "$VERSION" '.version = $v' package.json > /tmp/pkg.tmp && mv /tmp/pkg.tmp package.json
 
       - name: Install Neutralino CLI
         run: npm install -g @neutralinojs/neu
