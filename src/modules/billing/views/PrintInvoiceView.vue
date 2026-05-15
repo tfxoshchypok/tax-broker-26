@@ -7,7 +7,7 @@
       <p class="invoice-period">{{ periodLabel }} · {{ invoiceDateLabel }}</p>
 
       <div class="parties">
-        <div class="party">
+        <div v-if="showOwner" class="party">
           <div class="party-label">Виконавець</div>
           <div v-if="owner">
             <div v-if="owner.fullName" class="party-name">{{ owner.fullName }}</div>
@@ -67,7 +67,7 @@
       <div v-if="invoice.notes" class="notes">{{ invoice.notes }}</div>
 
       <div class="signatures">
-        <div class="signature-block">
+        <div v-if="showOwner" class="signature-block">
           <div class="signature-line"></div>
           <div class="signature-caption">Виконавець</div>
         </div>
@@ -84,12 +84,14 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useClientsStore } from '@/stores/clients.js'
 import { useOwnerProfileStore } from '@/stores/ownerProfile.js'
+import { useUiStore } from '@/stores/ui.js'
 import { BillingService } from '../services/BillingService.js'
 
 const props = defineProps({ id: { type: String, required: true } })
 
 const clientsStore = useClientsStore()
 const ownerStore   = useOwnerProfileStore()
+const ui           = useUiStore()
 
 const loading = ref(true)
 const invoice = ref(null)
@@ -98,6 +100,10 @@ const lines   = ref([])
 const UA_MONTHS = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень']
 
 const owner = computed(() => ownerStore.profile)
+
+const showOwner = computed(() =>
+  invoice.value?.paymentType !== 'cash' || ui.showOwnerOnCash
+)
 
 const client = computed(() =>
   clientsStore.list.find(c => c.id === invoice.value?.clientId) ?? null

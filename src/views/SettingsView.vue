@@ -124,6 +124,14 @@
             </n-form>
           </n-card>
 
+          <n-card title="Рахунки">
+            <n-form label-placement="left" label-width="200">
+              <n-form-item label="Реквізити виконавця при готівці">
+                <n-switch v-model:value="ui.showOwnerOnCash" />
+              </n-form-item>
+            </n-form>
+          </n-card>
+
           <n-card title="Скидання даних">
             <p style="font-size: 13px; opacity: 0.65; margin-bottom: 12px;">
               Видаляє всю базу даних і перезапускає апку. Після скидання довідники заповняться стандартними даними.
@@ -156,7 +164,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import {
   NPageHeader, NTabs, NTabPane, NCard, NForm, NFormItem,
-  NRadioGroup, NRadioButton, NTable, NTag, NSpace, NInput, NButton,
+  NRadioGroup, NRadioButton, NTable, NTag, NSpace, NInput, NButton, NSwitch,
   NDescriptions, NDescriptionsItem, NAlert, NDivider, NScrollbar,
   useMessage, useDialog,
 } from 'naive-ui'

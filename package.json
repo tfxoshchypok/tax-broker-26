@@ -1,15 +1,15 @@
 {
   "name": "tax-broker-26",
-  "version": "0.1.0",
+  "version": "0.1.5",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "neu:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && neu run --url=http://localhost:5173\"",
-    "neu:build": "vite build && neu build",
+    "neu:build": "vite build && neu build && cp dist/icon.ico dist/tax-broker-26/icon.ico",
     "neu:package-linux": "npm run neu:build && zip -j dist/tax-broker-26-linux_x64.zip dist/tax-broker-26/tax-broker-26-linux_x64 dist/tax-broker-26/resources.neu",
-    "neu:package-win": "npm run neu:build && zip -j dist/tax-broker-26-win_x64.zip dist/tax-broker-26/tax-broker-26-win_x64.exe dist/tax-broker-26/resources.neu",
+    "neu:package-win": "npm run neu:build && zip -j dist/tax-broker-26-win_x64.zip dist/tax-broker-26/tax-broker-26-win_x64.exe dist/tax-broker-26/resources.neu dist/tax-broker-26/icon.ico install-launcher.ps1",
     "neu:package-mac": "npm run neu:build && zip -j dist/tax-broker-26-mac_universal.zip dist/tax-broker-26/tax-broker-26-mac_universal dist/tax-broker-26/resources.neu",
     "test": "vitest",
     "test:run": "vitest run"
