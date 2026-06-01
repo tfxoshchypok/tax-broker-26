@@ -48,6 +48,13 @@
         </div>
       </n-tab-pane>
 
+      <!-- ── Спецподатки ── -->
+      <n-tab-pane name="special-taxes" tab="Спецподатки">
+        <div style="margin-top: 12px;">
+          <SpecialTaxTypesPanel />
+        </div>
+      </n-tab-pane>
+
       <!-- ── Оновлення ── -->
       <n-tab-pane name="update" tab="Оновлення">
         <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 16px; max-width: 520px;">
@@ -213,6 +220,7 @@ import { useUiStore } from '@/stores/ui.js'
 import { useOwnerProfileStore } from '@/stores/ownerProfile.js'
 import ServiceRatesPanel from '@/modules/billing/components/ServiceRatesPanel.vue'
 import ReportRulesPanel from '@/modules/tax/components/ReportRulesPanel.vue'
+import SpecialTaxTypesPanel from '@/modules/tax/components/SpecialTaxTypesPanel.vue'
 import { useUpdater } from '@/composables/useUpdater.js'
 import { getCurrentVersionSync } from '@/services/UpdaterService.js'
 

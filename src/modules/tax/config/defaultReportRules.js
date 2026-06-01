@@ -6,7 +6,7 @@ export const DEFAULT_REPORT_RULES = [
     category: 'income',
     frequency: 'annual',
     deadline: { type: 'fixed_date', month: 2, day: 28 },
-    condition: { taxSystem: 'simplified', simplifiedGroup: [1], vatPayer: null, hasEmployees: null, exciseTax: null, landTax: null, environmentalTax: null, rentTax: null },
+    condition: { taxSystem: 'simplified', simplifiedGroup: [1], vatPayer: null, hasEmployees: null },
     active: true,
   },
   {
@@ -16,7 +16,7 @@ export const DEFAULT_REPORT_RULES = [
     category: 'income',
     frequency: 'annual',
     deadline: { type: 'fixed_date', month: 2, day: 28 },
-    condition: { taxSystem: 'simplified', simplifiedGroup: [2], vatPayer: null, hasEmployees: null, exciseTax: null, landTax: null, environmentalTax: null, rentTax: null },
+    condition: { taxSystem: 'simplified', simplifiedGroup: [2], vatPayer: null, hasEmployees: null },
     active: true,
   },
   {
@@ -26,7 +26,7 @@ export const DEFAULT_REPORT_RULES = [
     category: 'income',
     frequency: 'quarterly',
     deadline: { type: 'days_after_period_end', value: 40 },
-    condition: { taxSystem: 'simplified', simplifiedGroup: [3, '3vat'], vatPayer: null, hasEmployees: null, exciseTax: null, landTax: null, environmentalTax: null, rentTax: null },
+    condition: { taxSystem: 'simplified', simplifiedGroup: [3, '3vat'], vatPayer: null, hasEmployees: null },
     active: true,
   },
   {
@@ -36,7 +36,7 @@ export const DEFAULT_REPORT_RULES = [
     category: 'vat_excise',
     frequency: 'monthly',
     deadline: { type: 'day_of_next_month', day: 20 },
-    condition: { taxSystem: null, simplifiedGroup: null, vatPayer: true, hasEmployees: null, exciseTax: null, landTax: null, environmentalTax: null, rentTax: null },
+    condition: { taxSystem: null, simplifiedGroup: null, vatPayer: true, hasEmployees: null },
     active: true,
   },
   {
@@ -46,7 +46,7 @@ export const DEFAULT_REPORT_RULES = [
     category: 'income',
     frequency: 'annual',
     deadline: { type: 'fixed_date', month: 5, day: 1 },
-    condition: { taxSystem: 'general', simplifiedGroup: null, vatPayer: null, hasEmployees: null, exciseTax: null, landTax: null, environmentalTax: null, rentTax: null },
+    condition: { taxSystem: 'general', simplifiedGroup: null, vatPayer: null, hasEmployees: null },
     active: true,
   },
   {
@@ -64,7 +64,7 @@ export const DEFAULT_REPORT_RULES = [
         { month: 11, day: 15 },
       ],
     },
-    condition: { taxSystem: 'general', simplifiedGroup: null, vatPayer: null, hasEmployees: null, exciseTax: null, landTax: null, environmentalTax: null, rentTax: null },
+    condition: { taxSystem: 'general', simplifiedGroup: null, vatPayer: null, hasEmployees: null },
     active: true,
   },
   {
@@ -74,7 +74,7 @@ export const DEFAULT_REPORT_RULES = [
     category: 'esv',
     frequency: 'monthly',
     deadline: { type: 'day_of_next_month', day: 20 },
-    condition: { taxSystem: null, simplifiedGroup: null, clientType: 'legal', vatPayer: null, hasEmployees: true, exciseTax: null, landTax: null, environmentalTax: null, rentTax: null },
+    condition: { taxSystem: null, simplifiedGroup: null, clientType: 'legal', vatPayer: null, hasEmployees: true },
     active: true,
   },
   {
@@ -84,7 +84,7 @@ export const DEFAULT_REPORT_RULES = [
     category: 'esv',
     frequency: 'quarterly',
     deadline: { type: 'days_after_period_end', value: 40 },
-    condition: { taxSystem: null, simplifiedGroup: null, clientType: 'fop', vatPayer: null, hasEmployees: true, exciseTax: null, landTax: null, environmentalTax: null, rentTax: null },
+    condition: { taxSystem: null, simplifiedGroup: null, clientType: 'fop', vatPayer: null, hasEmployees: true },
     active: true,
   },
   {
@@ -94,7 +94,7 @@ export const DEFAULT_REPORT_RULES = [
     category: 'vat_excise',
     frequency: 'monthly',
     deadline: { type: 'day_of_next_month', day: 20 },
-    condition: { taxSystem: null, simplifiedGroup: null, vatPayer: null, hasEmployees: null, exciseTax: true, landTax: null, environmentalTax: null, rentTax: null },
+    condition: { taxSystem: null, simplifiedGroup: null, vatPayer: null, hasEmployees: null, requiredSpecialTaxes: ['excise_tax'] },
     active: true,
   },
   {
@@ -104,7 +104,7 @@ export const DEFAULT_REPORT_RULES = [
     category: 'local',
     frequency: 'annual',
     deadline: { type: 'fixed_date', month: 2, day: 20 },
-    condition: { taxSystem: null, simplifiedGroup: null, vatPayer: null, hasEmployees: null, exciseTax: null, landTax: true, environmentalTax: null, rentTax: null },
+    condition: { taxSystem: null, simplifiedGroup: null, vatPayer: null, hasEmployees: null, requiredSpecialTaxes: ['land_tax'] },
     active: true,
   },
   {
@@ -114,7 +114,7 @@ export const DEFAULT_REPORT_RULES = [
     category: 'resource',
     frequency: 'quarterly',
     deadline: { type: 'days_after_period_end', value: 40 },
-    condition: { taxSystem: null, simplifiedGroup: null, vatPayer: null, hasEmployees: null, exciseTax: null, landTax: null, environmentalTax: true, rentTax: null },
+    condition: { taxSystem: null, simplifiedGroup: null, vatPayer: null, hasEmployees: null, requiredSpecialTaxes: ['environmental_tax'] },
     active: true,
   },
   {
@@ -124,7 +124,7 @@ export const DEFAULT_REPORT_RULES = [
     category: 'rent',
     frequency: 'quarterly',
     deadline: { type: 'days_after_period_end', value: 40 },
-    condition: { taxSystem: null, simplifiedGroup: null, vatPayer: null, hasEmployees: null, exciseTax: null, landTax: null, environmentalTax: null, rentTax: true },
+    condition: { taxSystem: null, simplifiedGroup: null, vatPayer: null, hasEmployees: null, requiredSpecialTaxes: ['rent_tax'] },
     active: true,
   },
 ]

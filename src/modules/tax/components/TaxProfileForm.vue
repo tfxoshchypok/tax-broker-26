@@ -44,22 +44,22 @@
       <!-- Right column -->
       <div class="switches-col">
         <div class="col-label">Спецподатки</div>
-        <div class="switch-row">
-          <n-switch v-model:value="form.exciseTax" />
-          <span class="switch-label">Акцизний податок</span>
-        </div>
-        <div class="switch-row">
-          <n-switch v-model:value="form.landTax" />
-          <span class="switch-label">Плата за землю</span>
-        </div>
-        <div class="switch-row">
-          <n-switch v-model:value="form.environmentalTax" />
-          <span class="switch-label">Екологічний податок</span>
-        </div>
-        <div class="switch-row">
-          <n-switch v-model:value="form.rentTax" />
-          <span class="switch-label">Рентна плата</span>
-        </div>
+        <n-spin :show="taxTypesLoading" :size="'small'">
+          <template v-if="taxTypesList.length === 0 && !taxTypesLoading">
+            <n-text depth="3" style="font-size: 13px;">Немає спецподатків</n-text>
+          </template>
+          <div
+            v-for="taxType in taxTypesList"
+            :key="taxType.key"
+            class="switch-row"
+          >
+            <n-switch
+              :value="form.specialTaxes.includes(taxType.key)"
+              @update:value="toggleSpecialTax(taxType.key, $event)"
+            />
+            <span class="switch-label">{{ taxType.name }}</span>
+          </div>
+        </n-spin>
       </div>
     </div>
 
@@ -72,8 +72,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, computed } from 'vue'
-import { NForm, NFormItem, NRadioGroup, NRadioButton, NRadio, NSwitch, NInputNumber, NButton, NSpace } from 'naive-ui'
+import { ref, reactive, watch, computed, onMounted } from 'vue'
+import { NForm, NFormItem, NRadioGroup, NRadioButton, NRadio, NSwitch, NInputNumber, NButton, NSpace, NSpin, NText } from 'naive-ui'
+import { useSpecialTaxTypesStore } from '../stores/specialTaxTypes.js'
 
 const props = defineProps({
   profile: { type: Object, default: null },
@@ -83,6 +84,10 @@ const emit = defineEmits(['save', 'cancel'])
 
 const hasProfile = computed(() => !!props.profile)
 const saving = ref(false)
+const taxTypesLoading = ref(false)
+
+const taxTypesStore = useSpecialTaxTypesStore()
+const taxTypesList = computed(() => taxTypesStore.list.filter(t => t.active))
 
 const DEFAULTS = {
   taxSystem: 'simplified',
@@ -90,26 +95,41 @@ const DEFAULTS = {
   vatPayer: false,
   hasEmployees: false,
   employeeCount: 0,
-  exciseTax: false,
-  landTax: false,
-  environmentalTax: false,
-  rentTax: false,
+  specialTaxes: [],
 }
 
-const form = reactive({ ...DEFAULTS })
+const form = reactive({ ...DEFAULTS, specialTaxes: [] })
 
 watch(() => props.profile, (p) => {
-  Object.assign(form, p ? { ...DEFAULTS, ...p } : { ...DEFAULTS })
+  const base = p ? { ...DEFAULTS, ...p } : { ...DEFAULTS }
+  Object.assign(form, base)
+  form.specialTaxes = Array.isArray(p?.specialTaxes) ? [...p.specialTaxes] : []
 }, { immediate: true })
+
+function toggleSpecialTax(key, enabled) {
+  if (enabled) {
+    if (!form.specialTaxes.includes(key)) form.specialTaxes.push(key)
+  } else {
+    form.specialTaxes = form.specialTaxes.filter(k => k !== key)
+  }
+}
 
 async function submit() {
   saving.value = true
   try {
-    emit('save', { ...form })
+    emit('save', { ...form, specialTaxes: [...form.specialTaxes] })
   } finally {
     saving.value = false
   }
 }
+
+onMounted(async () => {
+  if (taxTypesStore.list.length === 0) {
+    taxTypesLoading.value = true
+    await taxTypesStore.fetchAll()
+    taxTypesLoading.value = false
+  }
+})
 </script>
 
 <style scoped>

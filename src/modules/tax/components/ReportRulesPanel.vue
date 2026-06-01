@@ -162,23 +162,24 @@
               <n-switch v-model:value="form.condHasEmployees" size="small" />
               <span>Наймані працівники</span>
             </div>
-            <div class="flag-row">
-              <n-switch v-model:value="form.condExciseTax" size="small" />
-              <span>Акцизний податок</span>
-            </div>
-            <div class="flag-row">
-              <n-switch v-model:value="form.condLandTax" size="small" />
-              <span>Плата за землю</span>
-            </div>
-            <div class="flag-row">
-              <n-switch v-model:value="form.condEnvironmentalTax" size="small" />
-              <span>Екологічний податок</span>
-            </div>
-            <div class="flag-row">
-              <n-switch v-model:value="form.condRentTax" size="small" />
-              <span>Рентна плата</span>
-            </div>
           </div>
+        </n-form-item>
+
+        <n-form-item label="Спецподатки (обов'язкові)">
+          <n-spin :show="taxTypesLoading" :size="'small'">
+            <n-text v-if="!taxTypesLoading && taxTypesList.length === 0" depth="3" style="font-size: 13px;">
+              Немає спецподатків
+            </n-text>
+            <n-checkbox-group v-else v-model:value="form.condRequiredSpecialTaxes">
+              <n-space>
+                <n-checkbox
+                  v-for="t in taxTypesList"
+                  :key="t.key"
+                  :value="t.key"
+                >{{ t.name }}</n-checkbox>
+              </n-space>
+            </n-checkbox-group>
+          </n-spin>
         </n-form-item>
 
         <n-divider title-placement="left" style="margin: 4px 0 12px;">Послуга</n-divider>
@@ -208,7 +209,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import {
   NButton, NIcon, NList, NListItem, NThing, NText, NTag,
   NSpace, NSpin, NEmpty, NSwitch, NModal, NForm, NFormItem,
@@ -218,9 +219,13 @@ import {
 } from 'naive-ui'
 import { AddOutline, CreateOutline, TrashOutline, CloseOutline } from '@vicons/ionicons5'
 import { useReportRulesStore } from '../stores/reportRules.js'
+import { useSpecialTaxTypesStore } from '../stores/specialTaxTypes.js'
 import { BillingService } from '@/modules/billing/services/BillingService.js'
 
 const store = useReportRulesStore()
+const taxTypesStore = useSpecialTaxTypesStore()
+const taxTypesLoading = ref(false)
+const taxTypesList = computed(() => taxTypesStore.list.filter(t => t.active))
 const dialog = useDialog()
 const message = useMessage()
 
@@ -301,10 +306,7 @@ const EMPTY_FORM = () => ({
   condGroups: [],
   condVatPayer: false,
   condHasEmployees: false,
-  condExciseTax: false,
-  condLandTax: false,
-  condEnvironmentalTax: false,
-  condRentTax: false,
+  condRequiredSpecialTaxes: [],
 })
 
 const form = reactive(EMPTY_FORM())
@@ -340,12 +342,12 @@ function describeCondition(rule) {
   } else if (c.taxSystem === 'general') {
     parts.push('загальна')
   }
-  if (c.vatPayer)          parts.push('ПДВ')
-  if (c.hasEmployees)      parts.push('наймані')
-  if (c.exciseTax)         parts.push('акциз')
-  if (c.landTax)           parts.push('земля')
-  if (c.environmentalTax)  parts.push('еко')
-  if (c.rentTax)           parts.push('рента')
+  if (c.vatPayer)     parts.push('ПДВ')
+  if (c.hasEmployees) parts.push('наймані')
+  if (c.requiredSpecialTaxes?.length) {
+    const nameMap = Object.fromEntries(taxTypesStore.list.map(t => [t.key, t.name]))
+    c.requiredSpecialTaxes.forEach(k => parts.push(nameMap[k] ?? k))
+  }
   return parts.length > 0 ? parts.join(', ') : 'всі клієнти'
 }
 
@@ -380,12 +382,11 @@ function buildRecord() {
     simplifiedGroup: form.condTaxSystem === 'simplified' && form.condGroups.length > 0
       ? [...form.condGroups]
       : null,
-    vatPayer:          form.condVatPayer       || null,
-    hasEmployees:      form.condHasEmployees   || null,
-    exciseTax:         form.condExciseTax      || null,
-    landTax:           form.condLandTax        || null,
-    environmentalTax:  form.condEnvironmentalTax || null,
-    rentTax:           form.condRentTax        || null,
+    vatPayer:     form.condVatPayer     || null,
+    hasEmployees: form.condHasEmployees || null,
+    requiredSpecialTaxes: form.condRequiredSpecialTaxes.length > 0
+      ? [...form.condRequiredSpecialTaxes]
+      : null,
   }
 
   return { name: form.name.trim(), shortName: form.shortName.trim(), category: form.category, frequency: form.frequency, active: form.active, deadline, condition }
@@ -405,15 +406,12 @@ function applyRecord(rule) {
   form.dlDates  = d.dates ? d.dates.map(x => ({ ...x })) : []
 
   const c = rule.condition
-  form.condClientType         = c.clientType         ?? null
-  form.condTaxSystem          = c.taxSystem          ?? null
-  form.condGroups             = c.simplifiedGroup     ? [...c.simplifiedGroup] : []
-  form.condVatPayer           = !!c.vatPayer
-  form.condHasEmployees       = !!c.hasEmployees
-  form.condExciseTax          = !!c.exciseTax
-  form.condLandTax            = !!c.landTax
-  form.condEnvironmentalTax   = !!c.environmentalTax
-  form.condRentTax            = !!c.rentTax
+  form.condClientType               = c.clientType     ?? null
+  form.condTaxSystem                = c.taxSystem      ?? null
+  form.condGroups                   = c.simplifiedGroup ? [...c.simplifiedGroup] : []
+  form.condVatPayer                 = !!c.vatPayer
+  form.condHasEmployees             = !!c.hasEmployees
+  form.condRequiredSpecialTaxes     = Array.isArray(c.requiredSpecialTaxes) ? [...c.requiredSpecialTaxes] : []
 }
 
 function openCreate() {
@@ -483,8 +481,10 @@ function confirmDelete(rule) {
 
 onMounted(async () => {
   loading.value = true
-  await store.fetchAll()
+  taxTypesLoading.value = true
+  await Promise.all([store.fetchAll(), taxTypesStore.fetchAll()])
   loading.value = false
+  taxTypesLoading.value = false
 })
 </script>
 

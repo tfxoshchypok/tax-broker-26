@@ -92,6 +92,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { NButton, NIcon, NSpin, NEmpty, NDescriptions, NDescriptionsItem, NSpace, NTooltip } from 'naive-ui'
+import { useSpecialTaxTypesStore } from '../stores/specialTaxTypes.js'
 import { ChevronBackOutline, ChevronForwardOutline, ReceiptOutline } from '@vicons/ionicons5'
 import { useRouter } from 'vue-router'
 import { useClientsStore } from '@/stores/clients.js'
@@ -111,6 +112,7 @@ const router = useRouter()
 const clientsStore = useClientsStore()
 const profilesStore = useTaxProfilesStore()
 const rulesStore = useReportRulesStore()
+const taxTypesStore = useSpecialTaxTypesStore()
 const loading = ref(false)
 const reportsLoading = ref(false)
 const editing = ref(false)
@@ -139,12 +141,10 @@ const systemLabel = computed(() => {
 
 const specialTaxes = computed(() => {
   if (!profile.value) return ''
-  const parts = []
-  if (profile.value.exciseTax) parts.push('Акциз')
-  if (profile.value.landTax) parts.push('Земля')
-  if (profile.value.environmentalTax) parts.push('Еко')
-  if (profile.value.rentTax) parts.push('Рента')
-  return parts.join(', ')
+  const keys = profile.value.specialTaxes ?? []
+  if (keys.length === 0) return ''
+  const nameMap = Object.fromEntries(taxTypesStore.list.map(t => [t.key, t.name]))
+  return keys.map(k => nameMap[k] ?? k).join(', ')
 })
 
 const reports = computed(() => {
@@ -172,6 +172,7 @@ async function load() {
   loading.value = true
   if (clientsStore.list.length === 0) await clientsStore.fetchAll()
   if (rulesStore.list.length === 0) await rulesStore.fetchAll()
+  if (taxTypesStore.list.length === 0) await taxTypesStore.fetchAll()
   await profilesStore.load(props.clientId)
   loading.value = false
   await loadInstances()

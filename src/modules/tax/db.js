@@ -1,5 +1,6 @@
 import { db } from '@/db/index.js'
 import { DEFAULT_REPORT_RULES } from './config/defaultReportRules.js'
+import { DEFAULT_SPECIAL_TAX_TYPES } from './config/defaultSpecialTaxTypes.js'
 
 db.version(2).stores({
   clients:            '++id, lastName, email, phone, company, status, clientType, createdAt',
@@ -40,6 +41,7 @@ db.version(8).stores({
 
 // Seeding for fresh installs (upgrade() runs only on migration, not on first-ever DB creation)
 db.on('populate', async tx => {
+  await tx.table('specialTaxTypes').bulkAdd(DEFAULT_SPECIAL_TAX_TYPES)
   await tx.table('reportRules').bulkAdd(DEFAULT_REPORT_RULES)
 })
 
@@ -112,4 +114,55 @@ db.version(9).stores({
       active: true,
     },
   ])
+})
+
+const FULL_SCHEMA_V11 = {
+  clients:            '++id, lastName, email, phone, company, status, clientType, createdAt, archivedAt',
+  interactions:       '++id, clientId, type, date',
+  tags:               '++id, &name',
+  clientTags:         '++id, clientId, tagId',
+  taxProfiles:        '++id, &clientId',
+  taxReportInstances: '++id, clientId, ruleId, period, dueDate, status, [clientId+ruleId+period]',
+  serviceRates:       '++id, ruleId, active',
+  serviceRateHistory: '++id, rateId, changedAt',
+  invoices:           '++id, clientId, period, number, status, createdAt',
+  invoiceLines:       '++id, invoiceId, instanceId, ruleId, type, sortOrder',
+  ownerProfile:       '++id',
+  payments:           '++id, clientId, date, method, createdAt',
+  paymentInvoices:    '++id, paymentId, invoiceId, &[paymentId+invoiceId]',
+  reportRules:        '++id, &ruleId, category, active',
+  specialTaxTypes:    '++id, &key, active',
+}
+
+const OLD_FLAG_TO_KEY = {
+  exciseTax:        'excise_tax',
+  landTax:          'land_tax',
+  environmentalTax: 'environmental_tax',
+  rentTax:          'rent_tax',
+}
+
+db.version(11).stores(FULL_SCHEMA_V11).upgrade(async tx => {
+  // 1. Seed built-in special tax types
+  await tx.table('specialTaxTypes').bulkAdd(DEFAULT_SPECIAL_TAX_TYPES)
+
+  // 2. Migrate taxProfiles: boolean flags → specialTaxes[]
+  await tx.table('taxProfiles').toCollection().modify(profile => {
+    const specialTaxes = []
+    for (const [field, key] of Object.entries(OLD_FLAG_TO_KEY)) {
+      if (profile[field]) specialTaxes.push(key)
+      profile[field] = undefined
+    }
+    profile.specialTaxes = specialTaxes
+  })
+
+  // 3. Migrate reportRules conditions: boolean flags → requiredSpecialTaxes[]
+  await tx.table('reportRules').toCollection().modify(rule => {
+    if (!rule.condition) return
+    const req = []
+    for (const [field, key] of Object.entries(OLD_FLAG_TO_KEY)) {
+      if (rule.condition[field]) req.push(key)
+      rule.condition[field] = undefined
+    }
+    if (req.length > 0) rule.condition.requiredSpecialTaxes = req
+  })
 })

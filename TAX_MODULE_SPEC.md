@@ -1,27 +1,6 @@
 # Mini BUH — Tax Module Specification
 
-## Контекст проєкту
-
-Існуючий застосунок: десктопний CRM на **NeutralinoJS + Vite 6 + Vue 3 (Composition API) + Pinia + Vue Router 4 (hash history) + Dexie 4 (IndexedDB) + Naive UI + @vicons/ionicons5**.
-
-Поточна Dexie схема (version 1):
-```js
-clients:      '++id, lastName, email, phone, company, status, clientType, createdAt'
-interactions: '++id, clientId, type, date'
-tags:         '++id, &name'
-clientTags:   '++id, clientId, tagId'
-```
-
-Типи клієнтів: `individual` (фізична особа), `fop` (ФОП), `legal` (юридична особа).
-Статуси клієнтів: `active`, `lead`, `inactive`.
-
-DB інстанція експортується з `src/db/index.js` як `export const db = new Dexie('MiniBuh')`.
-
----
-
-## Завдання
-
-Реалізувати податковий модуль як **Vue Plugin** (`src/modules/tax/`), що підключається в `main.js` і не змінює жодного існуючого файлу крім `main.js` та `src/components/AppLayout.vue`.
+> Актуальна документація реалізованого модуля. Поточна версія Dexie DB: **v11**.
 
 ---
 
@@ -29,444 +8,298 @@ DB інстанція експортується з `src/db/index.js` як `expo
 
 ```
 src/modules/tax/
-├── index.js                        # TaxPlugin { install(app, { router }) }
-├── db.js                           # db.version(2) — імпортується до mount()
+├── index.js
+├── db.js                                  # db.version(2..11) — всі міграції
 ├── config/
-│   └── reportRules.js              # масив RULES — engine правил
+│   ├── defaultReportRules.js              # seed-дані для reportRules (нові інсталяції)
+│   ├── defaultSpecialTaxTypes.js          # seed-дані для specialTaxTypes (нові інсталяції)
+│   └── reportRules.js                     # застарілий файл (мертвий код — не імпортується)
 ├── services/
-│   ├── TaxReportEngine.js          # pure functions: profile + date → reports[]
-│   └── TaxReportService.js         # Dexie CRUD для taxReportInstances
+│   ├── TaxReportEngine.js                 # pure functions: profile + rules + date → reports[]
+│   ├── TaxReportService.js                # Dexie CRUD для taxProfiles і taxReportInstances
+│   ├── ReportRulesService.js              # Dexie CRUD для reportRules
+│   └── SpecialTaxTypesService.js          # Dexie CRUD + isReferenced() для specialTaxTypes
 ├── stores/
-│   ├── taxProfiles.js              # Pinia: профілі клієнтів
-│   └── taxDashboard.js             # Pinia: дашборд поточного місяця
+│   ├── taxProfiles.js                     # Pinia: профілі клієнтів + автотеги
+│   ├── taxDashboard.js                    # Pinia: дашборд звітів по всіх клієнтах
+│   ├── reportRules.js                     # Pinia: довідник правил звітів
+│   └── specialTaxTypes.js                 # Pinia: довідник спецподатків
 ├── views/
-│   ├── TaxDashboardView.vue        # /tax
-│   └── ClientTaxView.vue           # /clients/:id/tax (вбудовано в ClientDetailView)
+│   ├── TaxDashboardView.vue               # /tax
+│   └── ClientTaxView.vue                  # вбудовано в ClientDetailView як таб
 └── components/
-    ├── TaxProfileForm.vue           # форма налаштування податків клієнта
-    ├── TaxDashboardClientGroup.vue  # група звітів одного клієнта
-    ├── TaxReportRow.vue             # рядок звіту (list view)
-    ├── TaxReportCard.vue            # картка звіту (card/grid view)
-    └── TaxReportStatusBadge.vue     # бейдж статусу pending/contacted/submitted
+    ├── TaxProfileForm.vue                 # форма налаштування податків клієнта
+    ├── ReportRulesPanel.vue               # управління довідником правил (/settings → Звіти)
+    ├── SpecialTaxTypesPanel.vue           # управління спецподатками (/settings → Спецподатки)
+    ├── TaxDashboardClientGroup.vue
+    ├── TaxReportRow.vue
+    ├── TaxReportCard.vue
+    └── TaxReportStatusBadge.vue
 ```
 
 ---
 
-## Dexie Schema (version 2)
+## Dexie Schema
 
-Файл `src/modules/tax/db.js`:
+### Поточна версія: v11
 
-```js
-import { db } from '@/db/index.js'
+Нові таблиці відносно v1 (базовий CRM):
 
-db.version(2).stores({
-  // повторити всі таблиці version(1) без змін
-  clients:      '++id, lastName, email, phone, company, status, clientType, createdAt',
-  interactions: '++id, clientId, type, date',
-  tags:         '++id, &name',
-  clientTags:   '++id, clientId, tagId',
-  // нові таблиці
-  taxProfiles:        '++id, &clientId',
-  taxReportInstances: '++id, clientId, ruleId, period, dueDate, status, [clientId+ruleId+period]',
-})
+```
+taxProfiles:        '++id, &clientId'
+taxReportInstances: '++id, clientId, ruleId, period, dueDate, status, [clientId+ruleId+period]'
+reportRules:        '++id, &ruleId, category, active'
+specialTaxTypes:    '++id, &key, active'
 ```
 
-### taxProfiles — поля
+### Хронологія версій
+
+| Версія | Що змінилось |
+|--------|-------------|
+| v2 | `taxProfiles`, `taxReportInstances` |
+| v3 | `archivedAt` у `clients` |
+| v4–7 | Billing + Payments модулі |
+| v8 | `reportRules` + seed з `defaultReportRules.js` |
+| v9 | Розбивка `unified_report_q` → `unified_report_legal_monthly` + `unified_report_fop_quarterly` |
+| v10 | Перейменування категорій правил |
+| **v11** | `specialTaxTypes` + міграція boolean-прапорців профілів і умов правил на динамічні |
+
+---
+
+## Таблиці БД
+
+### taxProfiles
 
 ```js
 {
-  id,           // auto
-  clientId,     // FK → clients.id (унікальний)
+  id,                        // auto-increment
+  clientId,                  // FK → clients.id (унікальний)
   taxSystem:    'general' | 'simplified',
   simplifiedGroup: null | 1 | 2 | 3 | '3vat' | 4,
-  // simplified group descriptions:
-  // 1 → Група 1 (до 167 МЗП, без найманих)
-  // 2 → Група 2 (до 834 МЗП, до 10 найманих)
-  // 3 → Група 3 (5%, без ПДВ)
-  // '3vat' → Група 3 (3%, з ПДВ)
-  // 4 → Група 4 (сільгосп)
-  vatPayer:          Boolean,  // платник ПДВ
-  hasEmployees:      Boolean,  // є наймані працівники
-  employeeCount:     Number,   // кількість найманих (для інформації)
-  exciseTax:         Boolean,  // акцизний податок
-  landTax:           Boolean,  // плата за землю
-  environmentalTax:  Boolean,  // екологічний податок
-  rentTax:           Boolean,  // рентна плата
-  updatedAt,
+  vatPayer:     Boolean,     // платник ПДВ
+  hasEmployees: Boolean,     // є наймані працівники
+  employeeCount: Number,     // кількість найманих (інформаційно)
+  specialTaxes: string[],    // ключі активних спецподатків, напр. ['excise_tax', 'land_tax']
 }
 ```
 
-### taxReportInstances — поля
+> До v11 поля `exciseTax`, `landTax`, `environmentalTax`, `rentTax` зберігались як окремі boolean. Міграція v11 конвертує їх у `specialTaxes[]`.
+
+### taxReportInstances
 
 ```js
 {
   id,
   clientId,          // FK → clients.id
-  ruleId,            // string, відповідає RULES[n].id
-  period,            // string: '2026-05' | '2026-Q1' | '2026'
-  dueDate,           // timestamp — конкретна дата дедлайну
-  contactedAt,       // timestamp | null — клієнт повідомлений
-  submittedAt,       // timestamp | null — звіт здано до ДПС
-  notes,             // string — довільний коментар
-  updatedAt,
+  ruleId,            // string, відповідає reportRules.ruleId
+  period,            // '2026-05' | '2026-Q1' | '2026'
+  dueDate,           // timestamp
+  contactedAt,       // timestamp | null
+  submittedAt,       // timestamp | null
+  ignoredAt,         // timestamp | null
+  notes,             // string
 }
 ```
 
-**Правило статусів (обчислюється, не зберігається):**
-- `submittedAt !== null` → `submitted`
-- `contactedAt !== null && submittedAt === null` → `contacted`
-- обидва `null` → `pending`
+**Статуси (обчислюються, не зберігаються):**
+
+| Поля | Статус |
+|------|--------|
+| `ignoredAt !== null` | `ignored` |
+| `submittedAt !== null` | `submitted` |
+| `contactedAt !== null` | `contacted` |
+| всі null | `pending` |
+
+### reportRules
+
+```js
+{
+  id,           // auto-increment (PK у БД)
+  ruleId,       // рядковий бізнес-ідентифікатор (unique); вбудовані: 'et_g1_annual' тощо; кастомні: 'custom_1717...'
+  name,         // 'Декларація ЄП (Група 1)'
+  shortName,    // 'ЄП гр.1'
+  category,     // 'income' | 'vat_excise' | 'local' | 'resource' | 'rent' | 'financial' | 'esv' | 'other'
+  frequency,    // 'monthly' | 'quarterly' | 'annual' | 'fixed_dates'
+  deadline: {
+    // monthly:      { type: 'day_of_next_month',    day: Number }
+    // quarterly:    { type: 'days_after_period_end', value: Number }
+    // annual:       { type: 'fixed_date',            month: Number, day: Number }
+    // fixed_dates:  { type: 'fixed_dates',           dates: [{ month, day }, ...] }
+  },
+  condition: {
+    clientType:           'fop' | 'legal' | 'individual' | null,
+    taxSystem:            'simplified' | 'general' | null,
+    simplifiedGroup:      number[] | null,   // напр. [3, '3vat']
+    vatPayer:             true | null,
+    hasEmployees:         true | null,
+    requiredSpecialTaxes: string[] | null,   // ключі зі specialTaxTypes.key
+  },
+  active,       // Boolean
+}
+```
+
+> До v11 умови для спецподатків задавались окремими boolean-полями (`exciseTax: true` тощо). Міграція v11 конвертує їх у `requiredSpecialTaxes[]`.
+
+### specialTaxTypes
+
+```js
+{
+  id,      // auto-increment
+  key,     // унікальний рядок; вбудовані: 'excise_tax', 'land_tax', 'environmental_tax', 'rent_tax'; кастомні: 'stt_1717...'
+  name,    // 'Акцизний податок'
+  active,  // Boolean
+}
+```
+
+**Вбудовані типи (seed при v11 upgrade та db.on('populate')):**
+
+| key | name |
+|-----|------|
+| `excise_tax` | Акцизний податок |
+| `land_tax` | Плата за землю |
+| `environmental_tax` | Екологічний податок |
+| `rent_tax` | Рентна плата |
 
 ---
 
-## Report Rules Engine
+## TaxReportEngine
 
-### Типи дедлайнів
+Файл: `src/modules/tax/services/TaxReportEngine.js` — **чисті функції, без side effects**.
+
+### evaluateCondition(cond, profile)
+
+Перевіряє, чи підпадає клієнт під умову правила:
 
 ```
-day_of_next_month   → N-те число наступного місяця
-days_after_period_end → через N днів після кінця кварталу
-fixed_date          → фіксована дата кожного року (місяць + день)
-fixed_dates         → масив фіксованих дат (для поквартальних авансів)
+clientType          → profile.clientType === cond.clientType
+taxSystem           → profile.taxSystem === cond.taxSystem
+simplifiedGroup     → cond.simplifiedGroup.includes(profile.simplifiedGroup)
+vatPayer            → profile.vatPayer === true
+hasEmployees        → profile.hasEmployees === true
+requiredSpecialTaxes→ кожен ключ з масиву присутній у profile.specialTaxes[]
 ```
 
-### Масив RULES (src/modules/tax/config/reportRules.js)
+Поле `null` або відсутнє — умова не застосовується.
+
+### getExpectedReports(profile, year, month, rules)
 
 ```js
-export const RULES = [
-
-  // ─── Єдиний податок ──────────────────────────────────
-  {
-    id: 'et_g1_annual',
-    name: 'Декларація ЄП (Група 1)',
-    shortName: 'ЄП гр.1',
-    category: 'unified_tax',
-    frequency: 'annual',
-    deadline: { type: 'fixed_date', month: 2, day: 28 },
-    condition: p => p.taxSystem === 'simplified' && p.simplifiedGroup === 1,
-  },
-  {
-    id: 'et_g2_annual',
-    name: 'Декларація ЄП (Група 2)',
-    shortName: 'ЄП гр.2',
-    category: 'unified_tax',
-    frequency: 'annual',
-    deadline: { type: 'fixed_date', month: 2, day: 28 },
-    condition: p => p.taxSystem === 'simplified' && p.simplifiedGroup === 2,
-  },
-  {
-    id: 'et_g3_quarterly',
-    name: 'Декларація ЄП (Група 3)',
-    shortName: 'ЄП гр.3',
-    category: 'unified_tax',
-    frequency: 'quarterly',
-    deadline: { type: 'days_after_period_end', value: 40 },
-    condition: p => p.taxSystem === 'simplified' && [3, '3vat'].includes(p.simplifiedGroup),
-  },
-
-  // ─── ПДВ ─────────────────────────────────────────────
-  {
-    id: 'vat_monthly',
-    name: 'Декларація ПДВ',
-    shortName: 'ПДВ',
-    category: 'vat',
-    frequency: 'monthly',
-    deadline: { type: 'day_of_next_month', day: 20 },
-    condition: p => p.vatPayer,
-  },
-
-  // ─── Загальна система ─────────────────────────────────
-  {
-    id: 'income_annual',
-    name: 'Декларація про майновий стан і доходи',
-    shortName: 'ПДФО річна',
-    category: 'income_tax',
-    frequency: 'annual',
-    deadline: { type: 'fixed_date', month: 5, day: 1 },
-    condition: p => p.taxSystem === 'general',
-  },
-  {
-    id: 'income_advance_q',
-    name: 'Авансовий внесок ПДФО',
-    shortName: 'ПДФО аванс',
-    category: 'income_tax',
-    frequency: 'fixed_dates',
-    deadline: {
-      type: 'fixed_dates',
-      dates: [
-        { month: 3, day: 15 },
-        { month: 5, day: 15 },
-        { month: 8, day: 15 },
-        { month: 11, day: 15 },
-      ],
-    },
-    condition: p => p.taxSystem === 'general',
-  },
-
-  // ─── Наймана праця ───────────────────────────────────
-  {
-    id: 'unified_report_q',
-    name: "Об'єднана звітність (ЄСВ + 4-ДФ)",
-    shortName: 'ЄСВ+4ДФ',
-    category: 'employees',
-    frequency: 'quarterly',
-    deadline: { type: 'days_after_period_end', value: 40 },
-    condition: p => p.hasEmployees,
-  },
-
-  // ─── Спецподатки ─────────────────────────────────────
-  {
-    id: 'excise_monthly',
-    name: 'Декларація акцизного податку',
-    shortName: 'Акциз',
-    category: 'excise',
-    frequency: 'monthly',
-    deadline: { type: 'day_of_next_month', day: 20 },
-    condition: p => p.exciseTax,
-  },
-  {
-    id: 'land_annual',
-    name: 'Декларація з плати за землю',
-    shortName: 'Земля',
-    category: 'land',
-    frequency: 'annual',
-    deadline: { type: 'fixed_date', month: 2, day: 20 },
-    condition: p => p.landTax,
-  },
-  {
-    id: 'env_quarterly',
-    name: 'Декларація екологічного податку',
-    shortName: 'Еко',
-    category: 'environmental',
-    frequency: 'quarterly',
-    deadline: { type: 'days_after_period_end', value: 40 },
-    condition: p => p.environmentalTax,
-  },
-  {
-    id: 'rent_quarterly',
-    name: 'Декларація рентної плати',
-    shortName: 'Рента',
-    category: 'rent',
-    frequency: 'quarterly',
-    deadline: { type: 'days_after_period_end', value: 40 },
-    condition: p => p.rentTax,
-  },
-]
-```
-
-**Додавання нового податку = один новий об'єкт в масиві RULES. Зміни в DB або engine не потрібні.**
-
----
-
-## TaxReportEngine (pure functions)
-
-Файл `src/modules/tax/services/TaxReportEngine.js`
-
-### Функції
-
-```js
-// Повертає рядок кварталу для timestamp
-getQuarter(date) → 'Q1' | 'Q2' | 'Q3' | 'Q4'
-
-// Повертає рядок period для конкретного правила і дати
-getPeriodKey(rule, date) → '2026-05' | '2026-Q1' | '2026'
-
-// Обчислює дедлайн (timestamp) для правила і period
-computeDueDate(rule, periodKey, year) → timestamp
-
-// Основна функція: повертає список очікуваних звітів для профілю у вказаному місяці
+// profile — taxProfile з полем clientType (доданим зі stores/clients)
+// rules   — activeForEngine (з useReportRulesStore): active rules з id = ruleId
 // Повертає: Array<{ rule, period, dueDate }>
-getExpectedReports(profile, year, month) → ReportItem[]
 ```
 
-### Логіка getExpectedReports
+**Логіка частоти:**
 
-```
-Для кожного rule з RULES:
-  1. rule.condition(profile) === false → пропустити
-  2. Залежно від rule.frequency:
-     - 'monthly':
-         period = `${year}-${String(month).padStart(2,'0')}`
-         dueDate = computeDueDate(rule, period)
-         Якщо dueDate потрапляє в діапазон місяця → включити
-     - 'quarterly':
-         Визначити квартали, 40 днів після яких потрапляють у цей місяць
-         period = `${year}-Q${quarter}`
-         dueDate = останній день кварталу + 40 днів
-     - 'annual':
-         fixed_date: якщо rule.deadline.month === month → включити
-         period = `${year}`  (або попередній рік для лютневих звітів)
-     - 'fixed_dates':
-         Перебрати dates, де date.month === month → включити
-         period = `${year}-Q${n}` (відповідний квартал)
-```
+| frequency | period | dueDate |
+|-----------|--------|---------|
+| `monthly` | `YYYY-MM` попереднього місяця | N-те число поточного місяця |
+| `quarterly` | `YYYY-QN` | через value днів після кінця кварталу |
+| `annual` | `YYYY` попереднього року | фіксована дата (month.day) |
+| `fixed_dates` | `YYYY-QN` | конкретна дата зі списку |
 
-### Приклад результату для ФОП (ПДВ + наймані), травень 2026
+Результат відсортований за `dueDate` зростаючи.
+
+### activeForEngine (computed у useReportRulesStore)
 
 ```js
-[
-  {
-    rule: RULES.find(r => r.id === 'vat_monthly'),
-    period: '2026-05',
-    dueDate: new Date('2026-06-20').getTime(),   // 20 червня — до 20 наступного місяця
-  },
-  {
-    rule: RULES.find(r => r.id === 'unified_report_q'),
-    period: '2026-Q1',
-    dueDate: new Date('2026-05-11').getTime(),   // 40 днів після 31 березня
-  },
-  {
-    rule: RULES.find(r => r.id === 'income_advance_q'),
-    period: '2026-Q1',
-    dueDate: new Date('2026-05-15').getTime(),   // 15 травня
-  },
-]
+list.value.filter(r => r.active).map(r => ({ ...r, id: r.ruleId }))
 ```
+
+Engine звертається до `rule.id` — цей маппінг перетворює `ruleId` на `id`.
 
 ---
 
-## TaxReportService (DB operations)
+## Services
 
-Файл `src/modules/tax/services/TaxReportService.js`
+### TaxReportService
 
 ```js
-import { db } from '@/db/index.js'
+// taxProfiles
+getProfileByClientId(clientId)
+saveProfile(clientId, data)          // upsert по clientId
 
-export const TaxReportService = {
+// taxReportInstances
+getInstance(clientId, ruleId, period)
+getByClientId(clientId)
+markContacted(clientId, ruleId, period, dueDate, notes?)
+markSubmitted(clientId, ruleId, period, dueDate, notes?)
+markIgnored(clientId, ruleId, period, dueDate)
+updateNotes(id, notes)
+resetStatus(id)                      // видаляє запис → статус стає pending
+```
 
-  // taxProfiles
-  async getProfileByClientId(clientId),
-  async saveProfile(clientId, data),   // upsert
+### ReportRulesService
 
-  // taxReportInstances
-  async getInstance(clientId, ruleId, period),
-  async getByClientId(clientId),
-  async getByMonth(year, month),       // повертає всі instances з dueDate в [1.month, 1.month+1)
-  async markContacted(clientId, ruleId, period, dueDate, notes),
-  async markSubmitted(clientId, ruleId, period, dueDate, notes),
-  async updateNotes(id, notes),
-  async resetStatus(id),              // видаляє запис → статус стає pending
-}
+```js
+getAll()        // всі правила, відсортовані за id
+create(data)
+update(id, data)
+remove(id)
+```
+
+### SpecialTaxTypesService
+
+```js
+getAll()                     // всі типи, відсортовані за id
+add(data)                    // { key, name, active }
+update(id, data)
+remove(id)
+
+// Перевіряє наявність посилань перед видаленням
+isReferenced(key) → Promise<boolean>
+// true якщо key присутній у будь-якому taxProfiles.specialTaxes[]
+//           або у будь-якому reportRules.condition.requiredSpecialTaxes[]
 ```
 
 ---
 
 ## Pinia Stores
 
-### taxProfiles.js
+### useReportRulesStore
 
 ```js
-const profiles = ref({})           // Map clientId → taxProfile
+list              // ref: всі правила з БД
+activeForEngine   // computed: активні правила з id = ruleId (для TaxReportEngine)
 
-async function load(clientId)
-async function save(clientId, data)
-function getProfile(clientId)      // computed getter
+fetchAll()
+create(data)
+update(id, data)
+remove(id)
 ```
 
-### taxDashboard.js
+### useSpecialTaxTypesStore
 
 ```js
-const year = ref(currentYear)
-const month = ref(currentMonth)
-const viewMode = ref('list')       // 'list' | 'card' | 'grid'
-const categoryFilter = ref([])     // фільтр по категорії звіту
-const statusFilter = ref([])       // 'pending' | 'contacted' | 'submitted'
+list         // ref: всі типи з БД
 
-// Головний computed:
-// 1. activeClients = clients.list.filter(status === 'active')
-// 2. Для кожного — getExpectedReports(profile, year, month)
-// 3. Merge з instances з БД
-// 4. Групування по clientId
-// 5. Фільтрація по categoryFilter та statusFilter
-const groupedByClient = computed() → Array<ClientReportGroup>
-
-// Тип ClientReportGroup:
-{
-  client: ClientObject,
-  reports: Array<{
-    rule: RuleObject,
-    period: string,
-    dueDate: timestamp,
-    status: 'pending' | 'contacted' | 'submitted',
-    instance: taxReportInstance | null,
-  }>
-}
-
-async function markContacted(clientId, ruleId, period, dueDate)
-async function markSubmitted(clientId, ruleId, period, dueDate)
-async function refresh()           // перезавантажує instances з БД
+fetchAll()
+create(data)   // { key, name, active }
+update(id, data)
+remove(id)
 ```
 
----
+### useTaxProfilesStore
 
-## Views
+```js
+profiles     // ref: Map clientId → taxProfile
 
-### TaxDashboardView.vue (`/tax`)
-
-**Layout:**
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  Звіти                        [← Квіт 2026 →]          │
-│                                                          │
-│  Категорії: [Всі] [ЄП] [ПДВ] [ЄСВ] [Акциз] [...]      │
-│  Статус: [Всі] [⚪Очікується] [🟡Повідомлено] [🟢Здано]  │
-│  Вигляд: [≡ Список] [⊞ Картки] [⊟ Таблиця]             │
-├─────────────────────────────────────────────────────────┤
-│                                                          │
-│  ── LIST VIEW ──────────────────────────────────────    │
-│                                                          │
-│  ▼ Іванов Іван Іванович (ФОП)        2 звіти            │
-│    ⚪ ПДВ декларація    до 20.06.26   [Контакт][Здано]   │
-│    🟡 ЄСВ+4ДФ          до 11.05.26   Повідомл. 02.05   │
-│                                                          │
-│  ▼ ТОВ Ромашка (Юридична)            3 звіти            │
-│    🟢 ПДВ декларація    до 20.06.26   Здано 14.05       │
-│    ⚪ ЄСВ+4ДФ          до 11.05.26   [Контакт][Здано]   │
-│    ⚪ Акциз             до 20.06.26   [Контакт][Здано]   │
-│                                                          │
-│  ── CARD VIEW ──────────────────────────────────────    │
-│                                                          │
-│  ┌──────────────────────┐  ┌──────────────────────┐     │
-│  │ Іванов Іван          │  │ ТОВ Ромашка          │     │
-│  │ ────────────         │  │ ────────────         │     │
-│  │ ⚪ ПДВ    до 20.06   │  │ 🟢 ПДВ    Здано      │     │
-│  │ 🟡 ЄСВ+4ДФ до 11.05 │  │ ⚪ ЄСВ    до 11.05   │     │
-│  │                      │  │ ⚪ Акциз  до 20.06   │     │
-│  └──────────────────────┘  └──────────────────────┘     │
-│                                                          │
-└─────────────────────────────────────────────────────────┘
+load(clientId)
+save(clientId, data)   // зберігає профіль + оновлює автотеги клієнта
+getProfile(clientId)
 ```
 
-**Деталі реалізації:**
+`save` також оновлює теги клієнта через `applyTaxTags` — динамічно будує список назв тегів зі `specialTaxTypes` і синхронізує їх.
 
-- Перемикач місяця: `← [місяць рік] →`, навігація по місяцях
-- Фільтр категорій: `NCheckboxGroup` з кольоровими бейджами категорій
-- Фільтр статусу: `NCheckboxGroup`
-- Перемикач вигляду: три кнопки іконками, зберігається в `taxDashboard.store.viewMode`
-- Якщо у клієнта всі звіти `submitted` → collapse групи за замовчуванням, але можна розгорнути
-- Кнопки `[Контакт]` та `[Здано]` — inline, без модалки. Опційно: кнопка нотатки (відкриває малий popover)
-- Сортування груп: спочатку клієнти з `pending`/`contacted` звітами, потім `submitted`
+### useTaxDashboard (store)
 
-### ClientTaxView.vue (`/clients/:id/tax`)
+```js
+year, month            // поточний місяць навігації
+groupedByClient        // computed: клієнти → згруповані звіти з інстанціями та статусами
 
-Вбудовується в `ClientDetailView.vue` як окрема секція або таб.
-
-**Layout:**
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  Податковий профіль                    [Редагувати]      │
-│                                                          │
-│  Система: Спрощена, Група 3 (5%)                        │
-│  ПДВ: Так  |  Наймані: 2 ос.  |  Акциз: Ні             │
-├─────────────────────────────────────────────────────────┤
-│  Звіти цього місяця          [← Квіт 2026 →]           │
-│                                                          │
-│  ⚪ ПДВ декларація      до 20.06.2026   [Контакт][Здано]│
-│  🟡 ЄП гр.3 (Q1)       до 11.05.2026   Повідомл. 02.05 │
-│  🟢 ЄСВ+4ДФ (Q1)       до 11.05.2026   Здано 08.05     │
-└─────────────────────────────────────────────────────────┘
+loadAll()
+refresh()              // перезавантажує instances з БД
+markContacted / markSubmitted / markIgnored
 ```
 
 ---
@@ -475,182 +308,126 @@ async function refresh()           // перезавантажує instances з 
 
 ### TaxProfileForm.vue
 
-- `NRadioGroup` для вибору системи (`general` / `simplified`)
-- `NRadioGroup` для групи (показується якщо `simplified`)
-- `NSwitch` для кожного булевого флагу
-- `NInputNumber` для `employeeCount` (показується якщо `hasEmployees`)
-- Submit → `TaxReportService.saveProfile()`
+- `NRadioGroup` — система (`general` / `simplified`)
+- `NRadioGroup` — група ЄП (тільки для `simplified`)
+- `NSwitch` — `vatPayer`, `hasEmployees`
+- `NInputNumber` — `employeeCount` (тільки якщо `hasEmployees`)
+- **Динамічний список `NSwitch`** — `v-for` по `specialTaxTypes.list` (активні), прив'язаний до `form.specialTaxes[]`
 
-### TaxDashboardClientGroup.vue
+Завантажує `useSpecialTaxTypesStore` самостійно в `onMounted`.
 
-Props: `{ client, reports, viewMode }`
+### ReportRulesPanel.vue
 
-- Заголовок групи: ім'я клієнта, тип клієнта, кількість звітів, кнопка collapse
-- Підсвічування якщо є прострочені звіти (dueDate < now && status !== submitted)
-- Якщо `viewMode === 'list'` → `TaxReportRow` для кожного звіту
-- Якщо `viewMode === 'card'` або `'grid'` → `TaxReportCard` для кожного звіту
+Управління довідником правил у `/settings → Звіти`. При редагуванні умов:
+- `NCheckboxGroup` з усіма активними `specialTaxTypes` замість захардкоджених прапорців
 
-### TaxReportRow.vue
+### SpecialTaxTypesPanel.vue
 
-Props: `{ report }` де report = `{ rule, period, dueDate, status, instance }`
-
-```
-[badge] [shortName]  [dueDate]  [notes icon?]  [Контакт] [Здано]
-```
-
-- `[Контакт]` — відображається якщо status !== contacted/submitted → emit `contact`
-- `[Здано]` — відображається якщо status !== submitted → emit `submit`
-- Якщо contacted: показати "Повідом. {дата}" замість кнопки [Контакт]
-- Якщо submitted: показати "Здано {дата}" зеленим, без кнопок
-- Прострочений (dueDate < now && !submitted): dueDate червоним
-
-### TaxReportCard.vue
-
-Компактна картка для card/grid вигляду:
-
-```
-┌────────────────────┐
-│ [badge] ПДВ        │
-│ до 20.06.2026      │
-│ ⚪ Очікується      │
-│ [Контакт] [Здано]  │
-└────────────────────┘
-```
-
-### TaxReportStatusBadge.vue
-
-Props: `{ status: 'pending' | 'contacted' | 'submitted' }`
-
-| Status | Колір | Іконка | Текст |
-|---|---|---|---|
-| pending | сірий | TimeOutline | Очікується |
-| contacted | жовтий | ChatbubbleOutline | Повідомлено |
-| submitted | зелений | CheckmarkCircleOutline | Здано |
+Управління довідником спецподатків у `/settings → Спецподатки`:
+- Список типів з перемикачем `active` та кнопками Edit/Delete
+- Модальна форма для Add/Edit (поле `name`)
+- **Захист видалення:** `SpecialTaxTypesService.isReferenced(key)` перевіряється перед показом діалогу — якщо є посилання, показується `message.error` без відкриття діалогу
 
 ---
 
-## Plugin (index.js)
+## Міграція v11 — деталі
+
+Файл: `src/modules/tax/db.js`
 
 ```js
-// src/modules/tax/index.js
-import TaxDashboardView from './views/TaxDashboardView.vue'
-import ClientTaxView from './views/ClientTaxView.vue'
-
-export const TaxPlugin = {
-  install(app, { router }) {
-    router.addRoute({
-      path: '/tax',
-      name: 'tax-dashboard',
-      component: TaxDashboardView,
-    })
-    router.addRoute({
-      path: '/clients/:id/tax',
-      name: 'client-tax',
-      component: ClientTaxView,
-      props: true,
-    })
-  },
+// Константа для маппінгу старих полів → нові ключі
+const OLD_FLAG_TO_KEY = {
+  exciseTax:        'excise_tax',
+  landTax:          'land_tax',
+  environmentalTax: 'environmental_tax',
+  rentTax:          'rent_tax',
 }
+
+db.version(11).stores({ ..., specialTaxTypes: '++id, &key, active' })
+  .upgrade(async tx => {
+    // 1. Seed вбудованих типів
+    await tx.table('specialTaxTypes').bulkAdd(DEFAULT_SPECIAL_TAX_TYPES)
+
+    // 2. taxProfiles: { exciseTax: true } → { specialTaxes: ['excise_tax'] }
+    await tx.table('taxProfiles').toCollection().modify(profile => {
+      profile.specialTaxes = Object.entries(OLD_FLAG_TO_KEY)
+        .filter(([field]) => profile[field])
+        .map(([, key]) => key)
+      Object.keys(OLD_FLAG_TO_KEY).forEach(f => { profile[f] = undefined })
+    })
+
+    // 3. reportRules: { exciseTax: true } → { requiredSpecialTaxes: ['excise_tax'] }
+    await tx.table('reportRules').toCollection().modify(rule => {
+      if (!rule.condition) return
+      const req = Object.entries(OLD_FLAG_TO_KEY)
+        .filter(([field]) => rule.condition[field])
+        .map(([, key]) => key)
+      if (req.length) rule.condition.requiredSpecialTaxes = req
+      Object.keys(OLD_FLAG_TO_KEY).forEach(f => { rule.condition[f] = undefined })
+    })
+  })
 ```
+
+`db.on('populate')` (нові інсталяції) також сідить `specialTaxTypes` з `DEFAULT_SPECIAL_TAX_TYPES`.
 
 ---
 
-## Зміни в існуючих файлах
+## Вбудовані правила (defaultReportRules.js)
 
-### src/main.js (додати 3 рядки)
+| ruleId | Назва | Частота | Умова |
+|--------|-------|---------|-------|
+| `et_g1_annual` | Декларація ЄП (Група 1) | Щорічно до 28.02 | `simplified, group=[1]` |
+| `et_g2_annual` | Декларація ЄП (Група 2) | Щорічно до 28.02 | `simplified, group=[2]` |
+| `et_g3_quarterly` | Декларація ЄП (Група 3) | Щоквартально +40д | `simplified, group=[3, '3vat']` |
+| `vat_monthly` | Декларація ПДВ | Щомісяця до 20-го | `vatPayer=true` |
+| `income_annual` | Декларація ПДФО | Щорічно до 01.05 | `general` |
+| `income_advance_q` | Авансовий ПДФО | 15.03/05/08/11 | `general` |
+| `unified_report_legal_monthly` | ЄСВ+4ДФ (юр. особа) | Щомісяця до 20-го | `legal, hasEmployees=true` |
+| `unified_report_fop_quarterly` | ЄСВ+4ДФ (ФОП) | Щоквартально +40д | `fop, hasEmployees=true` |
+| `excise_monthly` | Акцизний податок | Щомісяця до 20-го | `requiredSpecialTaxes=['excise_tax']` |
+| `land_annual` | Плата за землю | Щорічно до 20.02 | `requiredSpecialTaxes=['land_tax']` |
+| `env_quarterly` | Екологічний податок | Щоквартально +40д | `requiredSpecialTaxes=['environmental_tax']` |
+| `rent_quarterly` | Рентна плата | Щоквартально +40д | `requiredSpecialTaxes=['rent_tax']` |
 
-```js
-import '@/modules/tax/db.js'                          // ← ПЕРЕД createApp
-import { TaxPlugin } from '@/modules/tax/index.js'
+---
 
-const app = createApp(App)
-app.use(createPinia())
-app.use(router)
-app.use(TaxPlugin, { router })                        // ← після router
-app.mount('#app')
+## Розширення системи
+
+### Додати нове правило
+
+1. Через `/settings → Звіти` → кнопка "Новий звіт"
+2. Або безпосередньо через `ReportRulesService.create(data)` / `useReportRulesStore().create(data)`
+3. При створенні через UI автоматично створюється відповідний тариф у `serviceRates`
+
+### Додати новий тип спецподатку
+
+1. Через `/settings → Спецподатки` → кнопка "Новий тип"
+2. Новий тип з'явиться в `TaxProfileForm` і в умовах `ReportRulesPanel`
+3. Видалення заблоковано, якщо хоч один профіль чи правило посилаються на цей ключ
+
+### Зв'язок між модулями
+
 ```
-
-### src/components/AppLayout.vue (додати пункт меню)
-
-```js
-import { ..., DocumentTextOutline } from '@vicons/ionicons5'
-
-// В menuOptions додати після 'tags':
-{
-  label: 'Звіти',
-  key: 'tax-dashboard',
-  icon: renderIcon(DocumentTextOutline),
-  onClick: () => router.push({ name: 'tax-dashboard' }),
-},
+specialTaxTypes.key
+  ↕ (stored in)
+taxProfiles.specialTaxes[]        ← TaxProfileForm
+  ↕ (evaluated by)
+reportRules.condition.requiredSpecialTaxes[]   ← ReportRulesPanel
+  ↕ (checked by)
+TaxReportEngine.evaluateCondition()
+  ↕ (produces)
+taxReportInstances.ruleId         → BillingModule (InvoiceGenerator)
 ```
-
-### src/views/ClientDetailView.vue (додати секцію)
-
-В template після секції тегів (`<ClientTagsSelect />`):
-
-```html
-<div class="section-label">Податки</div>
-<n-button size="small" @click="$router.push({ name: 'client-tax', params: { id: client.id } })">
-  Переглянути податковий профіль
-</n-button>
-```
-
-Або імпортувати `ClientTaxView` і вбудувати inline (рекомендовано для швидкого доступу).
 
 ---
 
 ## Period Encoding
 
-| Тип звіту | Приклад period | Коли з'являється на дашборді |
-|---|---|---|
-| monthly | `'2026-05'` | У травні (dueDate — 20 червня, але звіт за травень) |
-| quarterly Q1 | `'2026-Q1'` | У квітні/травні (40 днів після 31 березня) |
-| quarterly Q2 | `'2026-Q2'` | У липні/серпні |
-| quarterly Q3 | `'2026-Q3'` | У жовтні/листопаді |
-| quarterly Q4 | `'2026-Q4'` | У січні/лютому наступного року |
-| annual | `'2026'` | У місяці з fixed_date |
+| Тип | Приклад `period` | З'являється на дашборді місяця |
+|-----|-----------------|-------------------------------|
+| monthly | `'2026-05'` | Червень (dueDate = 20.06) |
+| quarterly Q1 | `'2026-Q1'` | Квітень–травень (+40д від 31.03) |
+| quarterly Q4 | `'2026-Q4'` | Січень–лютий наступного року |
+| annual | `'2025'` | Місяць deadline і місяць до нього |
 
-**Логіка відображення на дашборді місяця M:** показувати звіт якщо `dueDate` потрапляє в діапазон `[1-го M, останнє число M]` включно. Це означає що для місячного ПДВ, period='2026-05' з dueDate=20.06.2026 — він з'явиться на дашборді **червня**, не травня.
-
----
-
-## Сортування і пріоритети на дашборді
-
-### Порядок груп клієнтів
-
-```
-1. Клієнти з простроченими звітами (dueDate < today && !submitted)  ← червона рамка
-2. Клієнти з pending або contacted звітами  ← сортування по найближчому dueDate
-3. Клієнти де всі звіти submitted  ← collapse за замовчуванням
-```
-
-### Порядок звітів у групі
-
-```
-1. Прострочені (dueDate < today)
-2. По dueDate зростаючи
-```
-
----
-
-## Вимоги до UI/UX
-
-1. **Real-time** — при кліку [Контакт] або [Здано] статус оновлюється миттєво без перезавантаження сторінки
-2. **Нотатки** — при натисканні на іконку нотаток відкривається `NPopover` з `NInput` textarea, зберігається onBlur
-3. **Прострочено** — якщо `dueDate < Date.now()` і статус не `submitted`: dueDate підсвічується червоним, клієнт виноситься вгору
-4. **Навігація** — клік на ім'я клієнта в дашборді переходить на `/clients/:id`
-5. **Persistent view mode** — вибір list/card/grid зберігається в `localStorage` (`mb_tax_view`)
-6. **Active only** — на дашборд потрапляють тільки клієнти зі `status === 'active'`
-7. **Порожній дашборд** — якщо немає активних клієнтів з звітами: NEmpty з посиланням на список клієнтів
-8. **Keyboard**: `←` / `→` для навігації по місяцях на дашборді
-
----
-
-## Технічні нотатки
-
-- `TaxReportEngine.js` — **чисті функції без side effects**, легко тестувати
-- `condition` в RULES — **стрілкова функція** що приймає `taxProfile` і повертає `Boolean`
-- При відсутності `taxProfile` для клієнта — клієнт не з'являється на дашборді (показується порожній профіль у `ClientTaxView` з пропозицією заповнити)
-- `taxReportInstances` не містить рядка `status` — статус обчислюється в runtime з полів `contactedAt`/`submittedAt`
-- Весь модуль використовує `naive-ui` компоненти і `@vicons/ionicons5` іконки як і основний застосунок
-- Не використовувати `NDataTable` для списків — використовувати `NList` / `NListItem` / `NThing` для консистентності з рештою застосунку, крім `grid` вигляду де використовувати CSS grid з `NCard`
+Правило відображення: показати звіт у місяці M якщо `dueDate` потрапляє в `[1-ше M, останнє число M]`.

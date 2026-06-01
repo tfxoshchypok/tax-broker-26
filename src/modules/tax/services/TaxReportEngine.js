@@ -4,10 +4,10 @@ function evaluateCondition(cond, profile) {
   if (cond.simplifiedGroup != null && !cond.simplifiedGroup.includes(profile.simplifiedGroup)) return false
   if (cond.vatPayer && !profile.vatPayer) return false
   if (cond.hasEmployees && !profile.hasEmployees) return false
-  if (cond.exciseTax && !profile.exciseTax) return false
-  if (cond.landTax && !profile.landTax) return false
-  if (cond.environmentalTax && !profile.environmentalTax) return false
-  if (cond.rentTax && !profile.rentTax) return false
+  if (cond.requiredSpecialTaxes?.length) {
+    const profileTaxes = new Set(profile.specialTaxes ?? [])
+    if (!cond.requiredSpecialTaxes.every(k => profileTaxes.has(k))) return false
+  }
   return true
 }
 

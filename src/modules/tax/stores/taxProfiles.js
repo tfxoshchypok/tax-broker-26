@@ -4,8 +4,8 @@ import { db } from '@/db/index.js'
 import { TagService } from '@/services/TagService.js'
 import { TaxReportService } from '../services/TaxReportService.js'
 
-// All tag names this module may create — used to identify "tax-managed" tags
-const ALL_TAX_TAG_NAMES = [
+// Static tax-managed tag names (never from specialTaxTypes)
+const STATIC_TAX_TAG_NAMES = [
   'єдиний податок',
   'Група 1', 'Група 2', 'Група 3 (5%)', 'Група 3 (ПДВ)', 'Група 4',
   // Legacy names kept for cleanup on re-save
@@ -15,7 +15,7 @@ const ALL_TAX_TAG_NAMES = [
 
 const GROUP_COLOR = '#7c3aed'
 
-const TAX_TAG_COLORS = {
+const STATIC_TAG_COLORS = {
   'єдиний податок':  '#2080f0',
   'Група 1':         GROUP_COLOR,
   'Група 2':         GROUP_COLOR,
@@ -25,13 +25,9 @@ const TAX_TAG_COLORS = {
   'Загальна':        '#8b5cf6',
   'ПДВ':             '#f0a020',
   'Наймані':         '#18a058',
-  'Акциз':           '#d03050',
-  'Земля':           '#a16207',
-  'Еко':             '#16a34a',
-  'Рента':           '#6b7280',
 }
 
-function getApplicableTagNames(profile) {
+function getApplicableTagNames(profile, specialTaxKeyToName) {
   const names = []
   if (profile.taxSystem === 'simplified') {
     names.push('єдиний податок')
@@ -40,35 +36,43 @@ function getApplicableTagNames(profile) {
   } else if (profile.taxSystem === 'general') {
     names.push('Загальна')
   }
-  if (profile.vatPayer)           names.push('ПДВ')
-  if (profile.hasEmployees)       names.push('Наймані')
-  if (profile.exciseTax)          names.push('Акциз')
-  if (profile.landTax)            names.push('Земля')
-  if (profile.environmentalTax)   names.push('Еко')
-  if (profile.rentTax)            names.push('Рента')
+  if (profile.vatPayer)     names.push('ПДВ')
+  if (profile.hasEmployees) names.push('Наймані')
+  for (const key of (profile.specialTaxes ?? [])) {
+    const name = specialTaxKeyToName[key]
+    if (name) names.push(name)
+  }
   return names
 }
 
 async function applyTaxTags(clientId, profile) {
   const id = Number(clientId)
 
+  // Load all special tax types to build dynamic name map and managed-tag list
+  const allSpecialTypes = await db.specialTaxTypes.toArray()
+  const specialTaxKeyToName = Object.fromEntries(allSpecialTypes.map(t => [t.key, t.name]))
+  const allSpecialTaxTagNames = allSpecialTypes.map(t => t.name)
+  const allTaxTagNames = [...STATIC_TAX_TAG_NAMES, ...allSpecialTaxTagNames]
+
   // 1. Find or create the tags that should apply
-  const applicableNames = getApplicableTagNames(profile)
-  const existingTags = await db.tags.where('name').anyOf(applicableNames).toArray()
+  const applicableNames = getApplicableTagNames(profile, specialTaxKeyToName)
+  const existingTags = applicableNames.length > 0
+    ? await db.tags.where('name').anyOf(applicableNames).toArray()
+    : []
   const existingByName = Object.fromEntries(existingTags.map(t => [t.name, t.id]))
   const newTagIds = []
   for (const name of applicableNames) {
     if (existingByName[name] !== undefined) {
       newTagIds.push(existingByName[name])
     } else {
-      const newId = await db.tags.add({ name, color: TAX_TAG_COLORS[name] ?? '#6b7280' })
+      const newId = await db.tags.add({ name, color: STATIC_TAG_COLORS[name] ?? '#6b7280' })
       newTagIds.push(newId)
     }
   }
 
   // 2. Collect IDs of all tax-managed tags that exist in DB
   const taxTagIds = new Set(
-    (await db.tags.where('name').anyOf(ALL_TAX_TAG_NAMES).toArray()).map(t => t.id)
+    (await db.tags.where('name').anyOf(allTaxTagNames).toArray()).map(t => t.id)
   )
 
   // 3. Keep only non-tax tags the client already has

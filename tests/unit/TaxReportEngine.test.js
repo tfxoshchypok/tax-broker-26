@@ -10,8 +10,7 @@ function makeRule(ruleId, frequency, deadline, conditionOverrides = {}) {
     deadline,
     condition: {
       clientType: null, taxSystem: null, simplifiedGroup: null,
-      vatPayer: null, hasEmployees: null, exciseTax: null,
-      landTax: null, environmentalTax: null, rentTax: null,
+      vatPayer: null, hasEmployees: null,
       ...conditionOverrides,
     },
   }
@@ -47,6 +46,50 @@ describe('getExpectedReports', () => {
       const rule = makeRule('r', 'monthly', { day: 20 }, { vatPayer: true })
       expect(getExpectedReports({ vatPayer: false }, 2025, 3, [rule])).toHaveLength(0)
       expect(getExpectedReports({ vatPayer: true }, 2025, 3, [rule])).toHaveLength(1)
+    })
+
+    describe('requiredSpecialTaxes', () => {
+      it('includes rule when requiredSpecialTaxes is null', () => {
+        const rule = makeRule('r', 'monthly', { day: 20 }, { requiredSpecialTaxes: null })
+        expect(getExpectedReports({ specialTaxes: [] }, 2025, 3, [rule])).toHaveLength(1)
+      })
+
+      it('includes rule when requiredSpecialTaxes is empty array', () => {
+        const rule = makeRule('r', 'monthly', { day: 20 }, { requiredSpecialTaxes: [] })
+        expect(getExpectedReports({ specialTaxes: [] }, 2025, 3, [rule])).toHaveLength(1)
+      })
+
+      it('includes rule when profile has the required special tax', () => {
+        const rule = makeRule('r', 'monthly', { day: 20 }, { requiredSpecialTaxes: ['excise_tax'] })
+        expect(getExpectedReports({ specialTaxes: ['excise_tax'] }, 2025, 3, [rule])).toHaveLength(1)
+      })
+
+      it('excludes rule when profile lacks the required special tax', () => {
+        const rule = makeRule('r', 'monthly', { day: 20 }, { requiredSpecialTaxes: ['excise_tax'] })
+        expect(getExpectedReports({ specialTaxes: [] }, 2025, 3, [rule])).toHaveLength(0)
+        expect(getExpectedReports({}, 2025, 3, [rule])).toHaveLength(0)
+      })
+
+      it('excludes rule when profile has some but not all required special taxes', () => {
+        const rule = makeRule('r', 'monthly', { day: 20 }, { requiredSpecialTaxes: ['excise_tax', 'land_tax'] })
+        expect(getExpectedReports({ specialTaxes: ['excise_tax'] }, 2025, 3, [rule])).toHaveLength(0)
+      })
+
+      it('includes rule when profile has all required special taxes', () => {
+        const rule = makeRule('r', 'monthly', { day: 20 }, { requiredSpecialTaxes: ['excise_tax', 'land_tax'] })
+        expect(getExpectedReports({ specialTaxes: ['excise_tax', 'land_tax'] }, 2025, 3, [rule])).toHaveLength(1)
+      })
+
+      it('includes rule when profile has more special taxes than required', () => {
+        const rule = makeRule('r', 'monthly', { day: 20 }, { requiredSpecialTaxes: ['excise_tax'] })
+        expect(getExpectedReports({ specialTaxes: ['excise_tax', 'land_tax', 'rent_tax'] }, 2025, 3, [rule])).toHaveLength(1)
+      })
+
+      it('works with user-defined custom special tax keys', () => {
+        const rule = makeRule('r', 'monthly', { day: 20 }, { requiredSpecialTaxes: ['stt_1717000000000'] })
+        expect(getExpectedReports({ specialTaxes: ['stt_1717000000000'] }, 2025, 3, [rule])).toHaveLength(1)
+        expect(getExpectedReports({ specialTaxes: [] }, 2025, 3, [rule])).toHaveLength(0)
+      })
     })
   })
 
