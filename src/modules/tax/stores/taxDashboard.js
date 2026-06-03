@@ -20,6 +20,7 @@ export const useTaxDashboardStore = defineStore('taxDashboard', () => {
   const viewMode = ref(localStorage.getItem('mb_tax_view') || 'list')
   const categoryFilter = ref([])
   const statusFilter = ref([])
+  const groupFilter = ref(null)
 
   const instances = ref([])
 
@@ -41,7 +42,11 @@ export const useTaxDashboardStore = defineStore('taxDashboard', () => {
   }
 
   const groupedByClient = computed(() => {
-    const activeClients = clientsStore.list.filter(c => isClientVisibleForMonth(c, year.value, month.value))
+    const activeClients = clientsStore.list.filter(c => {
+      if (!isClientVisibleForMonth(c, year.value, month.value)) return false
+      if (groupFilter.value != null && c.groupId !== groupFilter.value) return false
+      return true
+    })
 
     const groups = []
     for (const client of activeClients) {
@@ -144,7 +149,7 @@ export const useTaxDashboardStore = defineStore('taxDashboard', () => {
   }
 
   return {
-    year, month, viewMode, categoryFilter, statusFilter,
+    year, month, viewMode, categoryFilter, statusFilter, groupFilter,
     groupedByClient, instances,
     refresh, markContacted, markSubmitted, markIgnored, updateNotes, resetStatus,
     prevMonth, nextMonth, setViewMode,

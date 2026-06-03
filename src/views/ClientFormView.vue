@@ -63,6 +63,14 @@
         <n-form-item-gi label="Адреса" path="address">
           <n-input v-model:value="form.address" placeholder="м. Київ, вул. ..." />
         </n-form-item-gi>
+        <n-form-item-gi label="Група" path="groupId">
+          <n-select
+            v-model:value="form.groupId"
+            :options="groupsStore.asOptions"
+            clearable
+            placeholder="Без групи"
+          />
+        </n-form-item-gi>
         <n-form-item-gi :span="2" label="Нотатки" path="notes">
           <n-input v-model:value="form.notes" type="textarea" :rows="3" placeholder="Додаткова інформація..." />
         </n-form-item-gi>
@@ -87,11 +95,13 @@ import {
 } from 'naive-ui'
 import { useMessage } from 'naive-ui'
 import { useClientsStore } from '@/stores/clients.js'
+import { useGroupsStore } from '@/stores/groups.js'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts.js'
 
 const props = defineProps({ id: { type: String, default: null } })
 const router = useRouter()
 const store = useClientsStore()
+const groupsStore = useGroupsStore()
 const message = useMessage()
 
 const isEdit = computed(() => !!props.id)
@@ -109,6 +119,7 @@ const form = reactive({
   address: '',
   notes: '',
   status: 'lead',
+  groupId: null,
 })
 
 const statusOptions = [
@@ -160,6 +171,7 @@ function goBack() {
 useKeyboardShortcuts({ 'escape': goBack })
 
 onMounted(async () => {
+  await groupsStore.fetchAll()
   if (isEdit.value) {
     const client = await store.getById(props.id)
     if (client) Object.assign(form, client)

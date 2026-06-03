@@ -33,6 +33,11 @@ const routes = [
     component: () => import('@/views/TagsView.vue'),
   },
   {
+    path: '/groups',
+    name: 'groups',
+    component: () => import('@/views/GroupsView.vue'),
+  },
+  {
     path: '/settings',
     name: 'settings',
     component: () => import('@/views/SettingsView.vue'),

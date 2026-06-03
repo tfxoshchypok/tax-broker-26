@@ -50,7 +50,7 @@
 import { computed, h } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { NLayout, NLayoutSider, NLayoutContent, NMenu, NIcon, NButton, NTooltip } from 'naive-ui'
-import { PersonCircleOutline, PeopleOutline, PricetagsOutline, SettingsOutline, SunnyOutline, MoonOutline, DocumentTextOutline, ReceiptOutline, WalletOutline } from '@vicons/ionicons5'
+import { PersonCircleOutline, PeopleOutline, PricetagsOutline, SettingsOutline, SunnyOutline, MoonOutline, DocumentTextOutline, ReceiptOutline, WalletOutline, LayersOutline } from '@vicons/ionicons5'
 import { useUiStore } from '@/stores/ui.js'
 
 const ui = useUiStore()
@@ -75,6 +75,12 @@ const menuOptions = [
     key: 'tags',
     icon: renderIcon(PricetagsOutline),
     onClick: () => router.push({ name: 'tags' }),
+  },
+  {
+    label: 'Групи',
+    key: 'groups',
+    icon: renderIcon(LayersOutline),
+    onClick: () => router.push({ name: 'groups' }),
   },
   {
     label: 'Звіти',

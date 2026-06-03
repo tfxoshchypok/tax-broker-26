@@ -38,6 +38,16 @@
 
         <n-divider vertical style="height: 20px;" />
 
+        <n-select
+          v-model:value="store.groupFilter"
+          :options="groupsStore.asOptions"
+          clearable
+          placeholder="Група"
+          style="width: 180px;"
+        />
+
+        <n-divider vertical style="height: 20px;" />
+
         <!-- View mode -->
         <n-button-group>
           <n-button
@@ -94,19 +104,21 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   NPageHeader, NButton, NButtonGroup, NIcon, NSpin, NEmpty,
-  NSpace, NCheckbox, NCheckboxGroup, NDivider,
+  NSpace, NCheckbox, NCheckboxGroup, NDivider, NSelect,
 } from 'naive-ui'
 import {
   ChevronBackOutline, ChevronForwardOutline,
   ListOutline, GridOutline,
 } from '@vicons/ionicons5'
 import { useTaxDashboardStore } from '../stores/taxDashboard.js'
+import { useGroupsStore } from '@/stores/groups.js'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts.js'
 import { BillingService } from '@/modules/billing/services/BillingService.js'
 import TaxDashboardClientGroup from '../components/TaxDashboardClientGroup.vue'
 
 const router = useRouter()
 const store = useTaxDashboardStore()
+const groupsStore = useGroupsStore()
 const loading = ref(false)
 
 const invoicesByClientId = ref({})
@@ -178,7 +190,7 @@ function onCreateInvoice({ client }) {
 
 onMounted(async () => {
   loading.value = true
-  await Promise.all([store.refresh(), loadInvoices()])
+  await Promise.all([store.refresh(), loadInvoices(), groupsStore.fetchAll()])
   loading.value = false
 })
 </script>

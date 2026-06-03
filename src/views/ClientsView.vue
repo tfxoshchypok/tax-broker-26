@@ -45,7 +45,15 @@
         multiple
         clearable
         placeholder="Фільтр по тегах"
-        style="width: 240px;"
+        style="width: 200px;"
+      />
+
+      <n-select
+        v-model:value="store.groupFilter"
+        :options="groupsStore.asOptions"
+        clearable
+        placeholder="Фільтр по групі"
+        style="width: 200px;"
       />
     </n-space>
 
@@ -85,6 +93,13 @@
                 <span v-if="client.phone" class="meta">{{ client.phone }}</span>
                 <span v-if="client.email" class="meta">{{ client.email }}</span>
                 <n-tag
+                  v-if="client.groupId"
+                  size="small"
+                  type="default"
+                >
+                  {{ groupName(client.groupId) }}
+                </n-tag>
+                <n-tag
                   v-for="tagId in client.tagIds"
                   :key="tagId"
                   size="small"
@@ -122,6 +137,7 @@ import {
 import { AddOutline, SearchOutline, PeopleOutline } from '@vicons/ionicons5'
 import { useClientsStore } from '@/stores/clients.js'
 import { useTagsStore } from '@/stores/tags.js'
+import { useGroupsStore } from '@/stores/groups.js'
 import { useUiStore } from '@/stores/ui.js'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts.js'
 import { statusLabel, statusType, CLIENT_TYPE_LABEL } from '@/constants/clients.js'
@@ -130,6 +146,7 @@ import { renderTagOption } from '@/utils/renderTagOption.js'
 const router = useRouter()
 const store = useClientsStore()
 const tagsStore = useTagsStore()
+const groupsStore = useGroupsStore()
 const ui = useUiStore()
 
 const searchRef = ref(null)
@@ -155,6 +172,7 @@ function resetFilters() {
   store.searchQuery = ''
   store.statusFilter = null
   store.tagFilter = []
+  store.groupFilter = null
 }
 
 function tagName(tagId) {
@@ -166,8 +184,12 @@ function tagStyle(tagId) {
   return { background: color, color: '#fff', border: 'none' }
 }
 
+function groupName(groupId) {
+  return groupsStore.list.find(g => g.id === groupId)?.name ?? ''
+}
+
 onMounted(async () => {
-  await Promise.all([store.fetchAll(), tagsStore.fetchAll()])
+  await Promise.all([store.fetchAll(), tagsStore.fetchAll(), groupsStore.fetchAll()])
 })
 </script>
 

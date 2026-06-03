@@ -40,6 +40,13 @@
               <n-descriptions-item label="Телефон">{{ client.phone || '—' }}</n-descriptions-item>
               <n-descriptions-item label="Email">{{ client.email || '—' }}</n-descriptions-item>
               <n-descriptions-item label="Адреса" :span="2">{{ client.address || '—' }}</n-descriptions-item>
+              <n-descriptions-item v-if="clientGroup" label="Група" :span="2">
+                {{ clientGroup.name }}
+                <n-text v-if="clientGroup.contactPerson" depth="3" style="margin-left: 8px;">
+                  {{ clientGroup.contactPerson }}
+                  <template v-if="clientGroup.contactPhone"> · {{ clientGroup.contactPhone }}</template>
+                </n-text>
+              </n-descriptions-item>
               <n-descriptions-item v-if="client.notes" label="Нотатки" :span="2">{{ client.notes }}</n-descriptions-item>
             </n-descriptions>
 
@@ -68,11 +75,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
-  NPageHeader, NButton, NSpace, NTag, NDescriptions, NDescriptionsItem,
+  NPageHeader, NButton, NSpace, NTag, NText, NDescriptions, NDescriptionsItem,
   NSpin, NTabs, NTabPane,
 } from 'naive-ui'
 import { useDialog, useMessage } from 'naive-ui'
 import { useClientsStore } from '@/stores/clients.js'
+import { useGroupsStore } from '@/stores/groups.js'
 import InteractionList from '@/components/InteractionList.vue'
 import ClientTagsSelect from '@/components/ClientTagsSelect.vue'
 import ClientTaxView from '@/modules/tax/views/ClientTaxView.vue'
@@ -84,6 +92,7 @@ const props = defineProps({ id: { type: String, required: true } })
 const router = useRouter()
 const route  = useRoute()
 const store = useClientsStore()
+const groupsStore = useGroupsStore()
 const dialog = useDialog()
 const message = useMessage()
 
@@ -100,8 +109,13 @@ const pageTitle = computed(() => {
     : `${client.value.lastName} ${client.value.firstName}`
 })
 
+const clientGroup = computed(() =>
+  client.value?.groupId ? groupsStore.list.find(g => g.id === client.value.groupId) : null
+)
+
 async function load() {
   loading.value = true
+  await groupsStore.fetchAll()
   client.value = await store.getById(props.id)
   loading.value = false
 }

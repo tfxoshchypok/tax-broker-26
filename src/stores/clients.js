@@ -9,6 +9,7 @@ export const useClientsStore = defineStore('clients', () => {
   const searchQuery = ref('')
   const statusFilter = ref('active')
   const tagFilter = ref([])
+  const groupFilter = ref(null)
   const isLoading = ref(false)
   const currentPage = ref(1)
 
@@ -26,7 +27,8 @@ export const useClientsStore = defineStore('clients', () => {
       const matchesStatus = !statusFilter.value || c.status === statusFilter.value
       const matchesTags = tagFilter.value.length === 0 ||
         tagFilter.value.every(tid => c.tagIds?.includes(tid))
-      return matchesSearch && matchesStatus && matchesTags
+      const matchesGroup = groupFilter.value == null || c.groupId === groupFilter.value
+      return matchesSearch && matchesStatus && matchesTags && matchesGroup
     })
   })
 
@@ -35,7 +37,7 @@ export const useClientsStore = defineStore('clients', () => {
     return filtered.value.slice(start, start + ui.defaultPageSize)
   })
 
-  watch([searchQuery, statusFilter, tagFilter], () => { currentPage.value = 1 })
+  watch([searchQuery, statusFilter, tagFilter, groupFilter], () => { currentPage.value = 1 })
 
   async function fetchAll() {
     isLoading.value = true
@@ -90,7 +92,7 @@ export const useClientsStore = defineStore('clients', () => {
   }
 
   return {
-    list, filtered, paginated, searchQuery, statusFilter, tagFilter,
+    list, filtered, paginated, searchQuery, statusFilter, tagFilter, groupFilter,
     statusCounts, isLoading, currentPage,
     fetchAll, getById, create, update, remove,
   }
