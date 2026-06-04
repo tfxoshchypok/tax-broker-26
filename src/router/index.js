@@ -3,7 +3,7 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 const routes = [
   {
     path: '/',
-    redirect: '/clients',
+    redirect: '/tax',
   },
   {
     path: '/clients',
@@ -36,6 +36,12 @@ const routes = [
     path: '/groups',
     name: 'groups',
     component: () => import('@/views/GroupsView.vue'),
+  },
+  {
+    path: '/groups/:id/clients',
+    name: 'group-clients',
+    component: () => import('@/views/GroupClientsView.vue'),
+    props: true,
   },
   {
     path: '/settings',

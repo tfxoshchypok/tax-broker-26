@@ -21,6 +21,7 @@ export const useTaxDashboardStore = defineStore('taxDashboard', () => {
   const categoryFilter = ref([])
   const statusFilter = ref([])
   const groupFilter = ref(null)
+  const nameFilter = ref('')
 
   const instances = ref([])
 
@@ -41,10 +42,19 @@ export const useTaxDashboardStore = defineStore('taxDashboard', () => {
     return false
   }
 
+  function clientMatchesName(client, query) {
+    if (!query) return true
+    const haystack = [client.company, client.lastName, client.firstName]
+      .filter(Boolean).join(' ').toLowerCase()
+    return haystack.includes(query)
+  }
+
   const groupedByClient = computed(() => {
+    const nameQuery = nameFilter.value.trim().toLowerCase()
     const activeClients = clientsStore.list.filter(c => {
       if (!isClientVisibleForMonth(c, year.value, month.value)) return false
       if (groupFilter.value != null && c.groupId !== groupFilter.value) return false
+      if (!clientMatchesName(c, nameQuery)) return false
       return true
     })
 
@@ -63,13 +73,16 @@ export const useTaxDashboardStore = defineStore('taxDashboard', () => {
 
       const reports = filtered
         .filter(({ dueDate }) => dueDate >= client.createdAt)
-        .map(({ rule, period, dueDate }) => {
+        .map(({ rule, period, dueDate, submissionStart }) => {
           const instance = instances.value.find(
             i => i.clientId === client.id && i.ruleId === rule.id && i.period === period
           ) ?? null
           const status = computeStatus(instance)
-          return { rule, period, dueDate, status, instance }
+          return { rule, period, dueDate, submissionStart, status, instance }
         })
+
+      // Прибрати клієнтів, у яких після фільтрів не лишилося жодного звіту
+      if (reports.length === 0) continue
 
       const matchesStatusFilter = statusFilter.value.length === 0
         || reports.some(r => statusFilter.value.includes(r.status))
@@ -98,6 +111,20 @@ export const useTaxDashboardStore = defineStore('taxDashboard', () => {
 
     return groups
   })
+
+  const hasActiveFilters = computed(() =>
+    nameFilter.value.trim() !== '' ||
+    categoryFilter.value.length > 0 ||
+    statusFilter.value.length > 0 ||
+    groupFilter.value != null
+  )
+
+  function resetFilters() {
+    nameFilter.value = ''
+    categoryFilter.value = []
+    statusFilter.value = []
+    groupFilter.value = null
+  }
 
   async function loadInstances() {
     const relevantIds = clientsStore.list
@@ -149,9 +176,9 @@ export const useTaxDashboardStore = defineStore('taxDashboard', () => {
   }
 
   return {
-    year, month, viewMode, categoryFilter, statusFilter, groupFilter,
-    groupedByClient, instances,
+    year, month, viewMode, categoryFilter, statusFilter, groupFilter, nameFilter,
+    hasActiveFilters, groupedByClient, instances,
     refresh, markContacted, markSubmitted, markIgnored, updateNotes, resetStatus,
-    prevMonth, nextMonth, setViewMode,
+    resetFilters, prevMonth, nextMonth, setViewMode,
   }
 })

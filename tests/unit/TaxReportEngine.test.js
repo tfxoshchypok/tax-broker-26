@@ -132,10 +132,19 @@ describe('getExpectedReports', () => {
   describe('annual frequency', () => {
     const rule = makeRule('ann', 'annual', { month: 2, day: 28 })
 
-    it('appears in the month before the deadline and in the deadline month', () => {
+    it('appears from January (submission opens) through the deadline month', () => {
       expect(getExpectedReports(anyProfile, 2025, 1, [rule])).toHaveLength(1)
       expect(getExpectedReports(anyProfile, 2025, 2, [rule])).toHaveLength(1)
       expect(getExpectedReports(anyProfile, 2025, 3, [rule])).toHaveLength(0)
+    })
+
+    it('spans every month from January to a later deadline (e.g. May 1)', () => {
+      const lateRule = makeRule('inc', 'annual', { month: 5, day: 1 })
+      for (const m of [1, 2, 3, 4, 5]) {
+        expect(getExpectedReports(anyProfile, 2025, m, [lateRule])).toHaveLength(1)
+      }
+      expect(getExpectedReports(anyProfile, 2025, 6, [lateRule])).toHaveLength(0)
+      expect(getExpectedReports(anyProfile, 2025, 12, [lateRule])).toHaveLength(0)
     })
 
     it('sets period to the year before the deadline', () => {
@@ -162,6 +171,30 @@ describe('getExpectedReports', () => {
     it('returns nothing in non-payment months', () => {
       expect(getExpectedReports(anyProfile, 2025, 4, [rule])).toHaveLength(0)
       expect(getExpectedReports(anyProfile, 2025, 6, [rule])).toHaveLength(0)
+    })
+  })
+
+  describe('submissionStart (вікно здачі)', () => {
+    it('monthly: 1st day of the deadline month', () => {
+      const [r] = getExpectedReports(anyProfile, 2025, 3, [makeRule('vat', 'monthly', { day: 20 })])
+      expect(r.submissionStart).toBe(new Date(2025, 2, 1).getTime())
+    })
+
+    it('annual: January 1st of the viewed year', () => {
+      const [r] = getExpectedReports(anyProfile, 2025, 2, [makeRule('ann', 'annual', { month: 2, day: 28 })])
+      expect(r.submissionStart).toBe(new Date(2025, 0, 1).getTime())
+    })
+
+    it('quarterly: the day after the quarter ends', () => {
+      const result = getExpectedReports(anyProfile, 2025, 5, [makeRule('q', 'quarterly', { value: 40 })])
+      const q1 = result.find(r => r.period === '2025-Q1')
+      expect(q1.submissionStart).toBe(new Date(2025, 3, 1).getTime()) // 1 квітня
+    })
+
+    it('fixed_dates: 1st day of the payment month', () => {
+      const rule = makeRule('adv', 'fixed_dates', { dates: [{ month: 3, day: 15 }] })
+      const [r] = getExpectedReports(anyProfile, 2025, 3, [rule])
+      expect(r.submissionStart).toBe(new Date(2025, 2, 1).getTime())
     })
   })
 

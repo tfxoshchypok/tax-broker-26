@@ -15,57 +15,73 @@
     </n-page-header>
 
     <!-- Filters -->
-    <div class="filters" style="margin-top: 16px;">
-      <n-space wrap>
-        <n-checkbox-group v-model:value="store.categoryFilter">
-          <n-space size="small">
-            <n-checkbox v-for="cat in CATEGORIES" :key="cat.value" :value="cat.value">
-              {{ cat.label }}
-            </n-checkbox>
-          </n-space>
-        </n-checkbox-group>
-
-        <n-divider vertical style="height: 20px;" />
-
-        <n-checkbox-group v-model:value="store.statusFilter">
-          <n-space size="small">
-            <n-checkbox value="pending">Очікується</n-checkbox>
-            <n-checkbox value="contacted">Повідомлено</n-checkbox>
-            <n-checkbox value="submitted">Здано</n-checkbox>
-            <n-checkbox value="ignored">Ігноровано</n-checkbox>
-          </n-space>
-        </n-checkbox-group>
-
-        <n-divider vertical style="height: 20px;" />
-
-        <n-select
-          v-model:value="store.groupFilter"
-          :options="groupsStore.asOptions"
+    <div class="filters">
+      <!-- Toolbar: search + group + view mode -->
+      <div class="filters-toolbar">
+        <n-input
+          v-model:value="store.nameFilter"
           clearable
-          placeholder="Група"
-          style="width: 180px;"
-        />
+          placeholder="Пошук за клієнтом"
+          class="filters-search"
+        >
+          <template #prefix><n-icon><SearchOutline /></n-icon></template>
+        </n-input>
 
-        <n-divider vertical style="height: 20px;" />
+        <div class="filters-toolbar-right">
+          <n-button
+            size="small"
+            quaternary
+            :disabled="!store.hasActiveFilters"
+            @click="store.resetFilters()"
+          >
+            <template #icon><n-icon><RefreshOutline /></n-icon></template>
+            Скинути
+          </n-button>
+          <n-select
+            v-model:value="store.groupFilter"
+            :options="groupsStore.asOptions"
+            clearable
+            placeholder="Група"
+            style="width: 180px;"
+          />
+          <n-button-group>
+            <n-button
+              :type="store.viewMode === 'list' ? 'primary' : 'default'"
+              size="small"
+              @click="store.setViewMode('list')"
+            >
+              <template #icon><n-icon><ListOutline /></n-icon></template>
+            </n-button>
+            <n-button
+              :type="store.viewMode === 'card' ? 'primary' : 'default'"
+              size="small"
+              @click="store.setViewMode('card')"
+            >
+              <template #icon><n-icon><GridOutline /></n-icon></template>
+            </n-button>
+          </n-button-group>
+        </div>
+      </div>
 
-        <!-- View mode -->
-        <n-button-group>
-          <n-button
-            :type="store.viewMode === 'list' ? 'primary' : 'default'"
-            size="small"
-            @click="store.setViewMode('list')"
-          >
-            <template #icon><n-icon><ListOutline /></n-icon></template>
-          </n-button>
-          <n-button
-            :type="store.viewMode === 'card' ? 'primary' : 'default'"
-            size="small"
-            @click="store.setViewMode('card')"
-          >
-            <template #icon><n-icon><GridOutline /></n-icon></template>
-          </n-button>
-        </n-button-group>
-      </n-space>
+      <!-- Labeled filter rows -->
+      <div class="filter-row">
+        <span class="filter-label">Категорії</span>
+        <n-checkbox-group v-model:value="store.categoryFilter" class="filter-options">
+          <n-checkbox v-for="cat in CATEGORIES" :key="cat.value" :value="cat.value">
+            {{ cat.label }}
+          </n-checkbox>
+        </n-checkbox-group>
+      </div>
+
+      <div class="filter-row">
+        <span class="filter-label">Статус</span>
+        <n-checkbox-group v-model:value="store.statusFilter" class="filter-options">
+          <n-checkbox value="pending">Очікується</n-checkbox>
+          <n-checkbox value="contacted">Повідомлено</n-checkbox>
+          <n-checkbox value="submitted">Здано</n-checkbox>
+          <n-checkbox value="ignored">Ігноровано</n-checkbox>
+        </n-checkbox-group>
+      </div>
     </div>
 
     <!-- Content -->
@@ -93,6 +109,7 @@
           @ignore="onIgnore"
           @notes="onNotes"
           @create-invoice="onCreateInvoice"
+          @filter-group="store.groupFilter = $event"
         />
       </div>
     </n-spin>
@@ -104,11 +121,11 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   NPageHeader, NButton, NButtonGroup, NIcon, NSpin, NEmpty,
-  NSpace, NCheckbox, NCheckboxGroup, NDivider, NSelect,
+  NCheckbox, NCheckboxGroup, NSelect, NInput,
 } from 'naive-ui'
 import {
   ChevronBackOutline, ChevronForwardOutline,
-  ListOutline, GridOutline,
+  ListOutline, GridOutline, SearchOutline, RefreshOutline,
 } from '@vicons/ionicons5'
 import { useTaxDashboardStore } from '../stores/taxDashboard.js'
 import { useGroupsStore } from '@/stores/groups.js'
@@ -220,8 +237,52 @@ onMounted(async () => {
 }
 
 .filters {
+  margin-top: 16px;
   padding: 12px 0;
   border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.filters-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filters-search {
+  width: 240px;
+}
+
+.filters-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.filter-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(128, 128, 128, 0.12);
+}
+
+.filter-label {
+  flex: 0 0 76px;
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.55;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
 }
 
 .groups {

@@ -65,28 +65,16 @@ function renderIcon(icon) {
 
 const menuOptions = [
   {
-    label: 'Клієнти',
-    key: 'clients',
-    icon: renderIcon(PeopleOutline),
-    onClick: () => router.push({ name: 'clients' }),
-  },
-  {
-    label: 'Теги',
-    key: 'tags',
-    icon: renderIcon(PricetagsOutline),
-    onClick: () => router.push({ name: 'tags' }),
-  },
-  {
-    label: 'Групи',
-    key: 'groups',
-    icon: renderIcon(LayersOutline),
-    onClick: () => router.push({ name: 'groups' }),
-  },
-  {
     label: 'Звіти',
     key: 'tax-dashboard',
     icon: renderIcon(DocumentTextOutline),
     onClick: () => router.push({ name: 'tax-dashboard' }),
+  },
+  {
+    label: 'Клієнти',
+    key: 'clients',
+    icon: renderIcon(PeopleOutline),
+    onClick: () => router.push({ name: 'clients' }),
   },
   {
     label: 'Рахунки',
@@ -99,6 +87,18 @@ const menuOptions = [
     key: 'payments-dashboard',
     icon: renderIcon(WalletOutline),
     onClick: () => router.push({ name: 'payments-dashboard' }),
+  },
+  {
+    label: 'Групи',
+    key: 'groups',
+    icon: renderIcon(LayersOutline),
+    onClick: () => router.push({ name: 'groups' }),
+  },
+  {
+    label: 'Теги',
+    key: 'tags',
+    icon: renderIcon(PricetagsOutline),
+    onClick: () => router.push({ name: 'tags' }),
   },
   {
     label: 'Налаштування',

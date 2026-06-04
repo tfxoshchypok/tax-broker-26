@@ -42,7 +42,8 @@ export function getExpectedReports(profile, year, month, rules) {
       const periodYear  = month === 1 ? year - 1 : year
       const period  = `${periodYear}-${String(periodMonth).padStart(2, '0')}`
       const dueDate = new Date(year, month - 1, rule.deadline.day)
-      results.push({ rule, period, dueDate: dueDate.getTime() })
+      const windowStart = new Date(year, month - 1, 1)
+      results.push({ rule, period, dueDate: dueDate.getTime(), submissionStart: windowStart.getTime() })
 
     } else if (rule.frequency === 'quarterly') {
       const candidates = [
@@ -60,20 +61,20 @@ export function getExpectedReports(profile, year, month, rules) {
         if (overlapsWithMonth(windowStart, due, year, month)) {
           const periodKey = `${endYear}-Q${quarter}`
           if (!results.some(r => r.rule.id === rule.id && r.period === periodKey)) {
-            results.push({ rule, period: periodKey, dueDate: due.getTime() })
+            results.push({ rule, period: periodKey, dueDate: due.getTime(), submissionStart: windowStart.getTime() })
           }
         }
       }
 
     } else if (rule.frequency === 'annual') {
       const dlMonth = rule.deadline.month
-      const windowStartMonth = dlMonth <= 1 ? 1 : dlMonth - 1
-      const windowStartYear  = dlMonth <= 1 ? year - 1 : year
-      const windowStart = new Date(windowStartYear, windowStartMonth - 1, 1)
+      // Звітний період — попередній рік (закінчується 31 грудня).
+      // Здача відкривається наступного дня після завершення періоду — 1 січня.
+      const windowStart = new Date(year, 0, 1)
       const due         = new Date(year, dlMonth - 1, rule.deadline.day)
 
       if (overlapsWithMonth(windowStart, due, year, month)) {
-        results.push({ rule, period: `${year - 1}`, dueDate: due.getTime() })
+        results.push({ rule, period: `${year - 1}`, dueDate: due.getTime(), submissionStart: windowStart.getTime() })
       }
 
     } else if (rule.frequency === 'fixed_dates') {
@@ -83,7 +84,7 @@ export function getExpectedReports(profile, year, month, rules) {
 
         if (overlapsWithMonth(windowStart, due, year, month)) {
           const quarter = ADVANCE_MONTH_TO_QUARTER[dateSpec.month] ?? Math.ceil(dateSpec.month / 3)
-          results.push({ rule, period: `${year}-Q${quarter}`, dueDate: due.getTime() })
+          results.push({ rule, period: `${year}-Q${quarter}`, dueDate: due.getTime(), submissionStart: windowStart.getTime() })
           break
         }
       }

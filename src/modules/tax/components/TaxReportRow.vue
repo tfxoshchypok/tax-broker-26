@@ -5,6 +5,10 @@
     <span class="report-name">{{ report.rule.shortName }}</span>
     <span class="report-period">{{ report.period }}</span>
 
+    <span v-if="submissionWindow" class="report-window" title="Період здачі">
+      здача {{ submissionWindow }}
+    </span>
+
     <span class="report-due" :class="{ 'report-due--overdue': isOverdue }">
       до {{ formatDate(report.dueDate) }}
     </span>
@@ -67,6 +71,22 @@ const isOverdue = computed(
   () => props.report.status !== 'submitted' && props.report.status !== 'ignored' && props.report.dueDate < Date.now()
 )
 
+const SHORT_MONTHS = ['січ', 'лют', 'бер', 'кві', 'тра', 'чер', 'лип', 'сер', 'вер', 'жов', 'лис', 'гру']
+
+// Вікно здачі: від місяця початку здачі до місяця крайнього терміну.
+// Якщо обидві дати в одному місяці — показуємо лише цей місяць.
+const submissionWindow = computed(() => {
+  const start = props.report.submissionStart
+  const due = props.report.dueDate
+  if (!start || !due) return ''
+  const s = new Date(start)
+  const d = new Date(due)
+  const sameMonth = s.getFullYear() === d.getFullYear() && s.getMonth() === d.getMonth()
+  return sameMonth
+    ? SHORT_MONTHS[s.getMonth()]
+    : `${SHORT_MONTHS[s.getMonth()]}–${SHORT_MONTHS[d.getMonth()]}`
+})
+
 function formatDate(ts) {
   if (!ts) return ''
   return new Date(ts).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: '2-digit' })
@@ -108,6 +128,13 @@ function onNotesBlur(event, report) {
   font-size: 12px;
   opacity: 0.55;
   min-width: 70px;
+}
+
+.report-window {
+  font-size: 12px;
+  opacity: 0.5;
+  min-width: 70px;
+  white-space: nowrap;
 }
 
 .report-due {

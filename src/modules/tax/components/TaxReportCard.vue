@@ -9,7 +9,10 @@
       <div class="card-due" :class="{ 'card-due--overdue': isOverdue }">
         до {{ formatDate(report.dueDate) }}
       </div>
-      <div class="card-period">{{ report.period }}</div>
+      <div class="card-period">
+        {{ report.period }}
+        <span v-if="submissionWindow" class="card-window">· здача {{ submissionWindow }}</span>
+      </div>
 
       <div class="card-actions">
         <template v-if="report.status === 'ignored'">
@@ -54,6 +57,21 @@ defineEmits(['submit', 'reset', 'ignore'])
 const isOverdue = computed(
   () => props.report.status !== 'submitted' && props.report.status !== 'ignored' && props.report.dueDate < Date.now()
 )
+
+const SHORT_MONTHS = ['січ', 'лют', 'бер', 'кві', 'тра', 'чер', 'лип', 'сер', 'вер', 'жов', 'лис', 'гру']
+
+// Вікно здачі: від місяця початку здачі до місяця крайнього терміну.
+const submissionWindow = computed(() => {
+  const start = props.report.submissionStart
+  const due = props.report.dueDate
+  if (!start || !due) return ''
+  const s = new Date(start)
+  const d = new Date(due)
+  const sameMonth = s.getFullYear() === d.getFullYear() && s.getMonth() === d.getMonth()
+  return sameMonth
+    ? SHORT_MONTHS[s.getMonth()]
+    : `${SHORT_MONTHS[s.getMonth()]}–${SHORT_MONTHS[d.getMonth()]}`
+})
 
 function formatDate(ts) {
   if (!ts) return ''

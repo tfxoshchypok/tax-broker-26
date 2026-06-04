@@ -153,12 +153,12 @@ const reports = computed(() => {
   const profileWithType = client ? { ...profile.value, clientType: client.clientType } : profile.value
   return getExpectedReports(profileWithType, year.value, month.value, rulesStore.activeForEngine)
     .filter(({ dueDate }) => dueDate >= props.createdAt)
-    .map(({ rule, period, dueDate }) => {
+    .map(({ rule, period, dueDate, submissionStart }) => {
       const instance = instances.value.find(
         i => i.clientId === Number(props.clientId) && i.ruleId === rule.id && i.period === period
       ) ?? null
       const status = instance?.ignoredAt ? 'ignored' : instance?.submittedAt ? 'submitted' : instance?.contactedAt ? 'contacted' : 'pending'
-      return { rule, period, dueDate, status, instance }
+      return { rule, period, dueDate, submissionStart, status, instance }
     })
 })
 

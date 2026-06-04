@@ -17,9 +17,14 @@ if (typeof Neutralino !== 'undefined' && window.NL_PORT) {
 const app = createApp(App)
 
 app.use(createPinia())
-app.use(router)
+
+// Реєструємо роути модулів ДО app.use(router): Vue Router виконує початкову
+// навігацію вже під час встановлення роутера, тож роути (зокрема /tax,
+// куди редіректить '/') мають існувати на цей момент.
 app.use(TaxPlugin,     { router })
 app.use(BillingPlugin, { router })
 app.use(PaymentsPlugin, { router })
+
+app.use(router)
 
 app.mount('#app')

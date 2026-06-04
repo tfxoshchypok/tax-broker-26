@@ -11,6 +11,16 @@
         </router-link>
         <span v-if="group.client.phone" class="client-phone">{{ group.client.phone }}</span>
         <n-tag type="info" size="small">{{ clientTypeLabel }}</n-tag>
+        <n-tag
+          v-if="clientGroup"
+          size="small"
+          :bordered="false"
+          class="group-tag"
+          @click.stop="$emit('filter-group', clientGroup.id)"
+        >
+          <template #icon><n-icon><LayersOutline /></n-icon></template>
+          {{ clientGroup.name }}
+        </n-tag>
         <n-tag v-if="hasOverdue" type="error" size="small">Прострочено</n-tag>
       </div>
       <div class="group-actions" @click.stop>
@@ -81,7 +91,8 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { NTag, NIcon, NButton, NTooltip } from 'naive-ui'
-import { ChevronDownOutline, ChevronForwardOutline, ReceiptOutline } from '@vicons/ionicons5'
+import { ChevronDownOutline, ChevronForwardOutline, ReceiptOutline, LayersOutline } from '@vicons/ionicons5'
+import { useGroupsStore } from '@/stores/groups.js'
 import TaxReportRow from './TaxReportRow.vue'
 import TaxReportCard from './TaxReportCard.vue'
 
@@ -91,7 +102,12 @@ const props = defineProps({
   invoice:  { type: Object, default: null },
 })
 
-defineEmits(['contact-client', 'submit', 'reset', 'ignore', 'notes', 'create-invoice'])
+defineEmits(['contact-client', 'submit', 'reset', 'ignore', 'notes', 'create-invoice', 'filter-group'])
+
+const groupsStore = useGroupsStore()
+const clientGroup = computed(() =>
+  groupsStore.list.find(g => g.id === props.group.client.groupId) ?? null
+)
 
 const INVOICE_STATUS = {
   draft:     { label: 'Чернетка',     type: 'default' },
@@ -196,6 +212,16 @@ const reportsWord = computed(() => pluralize(props.group.reports.length, REPORT_
 .client-phone {
   font-size: 13px;
   opacity: 0.55;
+}
+
+.group-tag {
+  cursor: pointer;
+  background: rgba(32, 128, 240, 0.12);
+  transition: background 0.15s;
+}
+
+.group-tag:hover {
+  background: rgba(32, 128, 240, 0.22);
 }
 
 .group-actions {

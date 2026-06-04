@@ -25,6 +25,10 @@
                 <n-text depth="3" style="font-size: 13px;">
                   {{ clientCounts[group.id] ?? 0 }} {{ pluralClient(clientCounts[group.id] ?? 0) }}
                 </n-text>
+                <n-button size="small" quaternary @click="openClients(group)">
+                  <template #icon><n-icon><PeopleOutline /></n-icon></template>
+                  Клієнти
+                </n-button>
                 <n-button size="small" quaternary @click="openEdit(group)">
                   <template #icon><n-icon><CreateOutline /></n-icon></template>
                 </n-button>
@@ -81,10 +85,12 @@ import {
   NSpace, NSpin, NEmpty, NModal, NForm, NFormItem, NInput,
 } from 'naive-ui'
 import { useDialog, useMessage } from 'naive-ui'
-import { AddOutline, CreateOutline, TrashOutline } from '@vicons/ionicons5'
+import { AddOutline, CreateOutline, TrashOutline, PeopleOutline } from '@vicons/ionicons5'
+import { useRouter } from 'vue-router'
 import { useGroupsStore } from '@/stores/groups.js'
 import { GroupService } from '@/services/GroupService.js'
 
+const router = useRouter()
 const groupsStore = useGroupsStore()
 const dialog = useDialog()
 const message = useMessage()
@@ -113,6 +119,10 @@ async function load() {
   await groupsStore.fetchAll()
   clientCounts.value = await GroupService.getClientCounts()
   loading.value = false
+}
+
+function openClients(group) {
+  router.push({ name: 'group-clients', params: { id: group.id } })
 }
 
 function openCreate() {

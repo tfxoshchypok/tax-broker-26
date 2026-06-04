@@ -157,6 +157,74 @@ describe('GroupService.remove', () => {
   })
 })
 
+// ─── setMembers ────────────────────────────────────────────────────────────────
+
+describe('GroupService.setMembers', () => {
+  it('assigns groupId to all listed clients', async () => {
+    const { id: groupId } = await addGroup('Цільова')
+    const c1 = await addClient({ groupId: null })
+    const c2 = await addClient({ groupId: null })
+
+    await GroupService.setMembers(groupId, [c1, c2])
+
+    expect((await db.clients.get(c1)).groupId).toBe(groupId)
+    expect((await db.clients.get(c2)).groupId).toBe(groupId)
+  })
+
+  it('clears groupId from clients removed from the group', async () => {
+    const { id: groupId } = await addGroup('Група')
+    const keep = await addClient({ groupId })
+    const drop = await addClient({ groupId })
+
+    await GroupService.setMembers(groupId, [keep])
+
+    expect((await db.clients.get(keep)).groupId).toBe(groupId)
+    expect((await db.clients.get(drop)).groupId).toBeNull()
+  })
+
+  it('reassigns a client from another group (one group per client)', async () => {
+    const { id: groupA } = await addGroup('A')
+    const { id: groupB } = await addGroup('B')
+    const client = await addClient({ groupId: groupA })
+
+    await GroupService.setMembers(groupB, [client])
+
+    expect((await db.clients.get(client)).groupId).toBe(groupB)
+  })
+
+  it('empty list clears all members of the group', async () => {
+    const { id: groupId } = await addGroup('Спорожнити')
+    const c1 = await addClient({ groupId })
+    const c2 = await addClient({ groupId })
+
+    await GroupService.setMembers(groupId, [])
+
+    expect((await db.clients.get(c1)).groupId).toBeNull()
+    expect((await db.clients.get(c2)).groupId).toBeNull()
+  })
+
+  it('does not touch clients of other groups', async () => {
+    const { id: groupA } = await addGroup('A')
+    const { id: groupB } = await addGroup('B')
+    const other = await addClient({ groupId: groupB })
+    const target = await addClient({ groupId: null })
+
+    await GroupService.setMembers(groupA, [target])
+
+    expect((await db.clients.get(other)).groupId).toBe(groupB)
+  })
+
+  it('updates updatedAt on changed clients', async () => {
+    const { id: groupId } = await addGroup('Група')
+    const client = await addClient({ groupId: null })
+    const before = Date.now()
+
+    await GroupService.setMembers(groupId, [client])
+
+    expect((await db.clients.get(client)).updatedAt).toBeGreaterThanOrEqual(before)
+  })
+})
+
 // ─── getClientCounts ─────────────────────────────────────────────────────────
 
 describe('GroupService.getClientCounts', () => {

@@ -5,7 +5,7 @@ import { TagService } from '@/services/TagService.js'
 import { TaxReportService } from '../services/TaxReportService.js'
 
 // Static tax-managed tag names (never from specialTaxTypes)
-const STATIC_TAX_TAG_NAMES = [
+export const STATIC_TAX_TAG_NAMES = [
   'єдиний податок',
   'Група 1', 'Група 2', 'Група 3 (5%)', 'Група 3 (ПДВ)', 'Група 4',
   // Legacy names kept for cleanup on re-save

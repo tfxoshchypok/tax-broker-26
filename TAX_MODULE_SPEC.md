@@ -186,17 +186,19 @@ requiredSpecialTaxes→ кожен ключ з масиву присутній �
 ```js
 // profile — taxProfile з полем clientType (доданим зі stores/clients)
 // rules   — activeForEngine (з useReportRulesStore): active rules з id = ruleId
-// Повертає: Array<{ rule, period, dueDate }>
+// Повертає: Array<{ rule, period, dueDate, submissionStart }>
 ```
 
 **Логіка частоти:**
 
-| frequency | period | dueDate |
-|-----------|--------|---------|
-| `monthly` | `YYYY-MM` попереднього місяця | N-те число поточного місяця |
-| `quarterly` | `YYYY-QN` | через value днів після кінця кварталу |
-| `annual` | `YYYY` попереднього року | фіксована дата (month.day) |
-| `fixed_dates` | `YYYY-QN` | конкретна дата зі списку |
+| frequency | period | dueDate | submissionStart (початок здачі) |
+|-----------|--------|---------|---------------------------------|
+| `monthly` | `YYYY-MM` попереднього місяця | N-те число поточного місяця | 1-ше число місяця терміну |
+| `quarterly` | `YYYY-QN` | через value днів після кінця кварталу | наступний день після кінця кварталу |
+| `annual` | `YYYY` попереднього року | фіксована дата (month.day) | 1 січня поточного року |
+| `fixed_dates` | `YYYY-QN` | конкретна дата зі списку | 1-ше число місяця терміну |
+
+`submissionStart` (ms) — початок вікна здачі = наступний день після завершення звітного періоду. Для річних це 1 січня, тож декларація видима з січня по місяць крайнього терміну (див. розділ Period Encoding). UI показує це вікно у `TaxReportRow.vue` / `TaxReportCard.vue` (напр. «здача січ–тра»).
 
 Результат відсортований за `dueDate` зростаючи.
 
@@ -291,16 +293,29 @@ getProfile(clientId)
 
 `save` також оновлює теги клієнта через `applyTaxTags` — динамічно будує список назв тегів зі `specialTaxTypes` і синхронізує їх.
 
+Константа `STATIC_TAX_TAG_NAMES` (список статичних назв: Група 1-4, ЄП, ПДВ, Наймані тощо) є **export**-ованою — її імпортує `ClientTagsSelect.vue`, щоб під час монтування завантажити ID системних тегів з БД і рендерити їх без кнопки закриття (`closable: false`). Системні теги (статичні + динамічні зі `specialTaxTypes`) не можна видалити через UI картки клієнта.
+
 ### useTaxDashboard (store)
 
 ```js
 year, month            // поточний місяць навігації
+viewMode               // 'list' | 'card' (зберігається в localStorage)
+
+// Фільтри та пошук
+nameFilter             // пошук за клієнтом (company / lastName / firstName)
+categoryFilter         // масив категорій правил
+statusFilter           // масив статусів
+groupFilter            // id групи або null
+hasActiveFilters       // computed: чи встановлено хоч один фільтр/пошук
+resetFilters()         // скидає nameFilter / categoryFilter / statusFilter / groupFilter
+
 groupedByClient        // computed: клієнти → згруповані звіти з інстанціями та статусами
 
-loadAll()
 refresh()              // перезавантажує instances з БД
-markContacted / markSubmitted / markIgnored
+markContacted / markSubmitted / markIgnored / updateNotes / resetStatus
 ```
+
+`groupedByClient` застосовує всі фільтри й **пропускає клієнтів без жодного звіту** після фільтрації (зокрема коли фільтр категорій нічого не лишив). У заголовку клієнта показується тег його групи; клік по ньому встановлює `groupFilter` (аналог вибору у селекті «Група»).
 
 ---
 
@@ -428,6 +443,6 @@ taxReportInstances.ruleId         → BillingModule (InvoiceGenerator)
 | monthly | `'2026-05'` | Червень (dueDate = 20.06) |
 | quarterly Q1 | `'2026-Q1'` | Квітень–травень (+40д від 31.03) |
 | quarterly Q4 | `'2026-Q4'` | Січень–лютий наступного року |
-| annual | `'2025'` | Місяць deadline і місяць до нього |
+| annual | `'2025'` | Від січня по місяць deadline (здача відкривається 1 січня) |
 
-Правило відображення: показати звіт у місяці M якщо `dueDate` потрапляє в `[1-ше M, останнє число M]`.
+Правило відображення: показати звіт у місяці M, якщо вікно здачі `[початок здачі … dueDate]` перетинається з `[1-ше M, останнє число M]`. Початок здачі = наступний день після завершення звітного періоду (для річних — 1 січня поточного року).

@@ -4,7 +4,6 @@
       v-model:value="selected"
       :options="tagsStore.asOptions"
       multiple
-      clearable
       placeholder="Додати теги..."
       :render-tag="renderTag"
       :render-label="renderTagOption"
@@ -51,6 +50,7 @@ import { TagService } from '@/services/TagService.js'
 import { db } from '@/db/index.js'
 import { TAG_PALETTE } from '@/constants/tags.js'
 import { renderTagOption } from '@/utils/renderTagOption.js'
+import { STATIC_TAX_TAG_NAMES } from '@/modules/tax/stores/taxProfiles.js'
 
 const props = defineProps({ clientId: { type: [Number, String], required: true } })
 const emit = defineEmits(['change'])
@@ -61,6 +61,7 @@ const tagsStore = useTagsStore()
 const message = useMessage()
 
 const selected = ref([])
+const systemTagIds = ref(new Set())
 const showCreate = ref(false)
 const creating = ref(false)
 const createFormRef = ref(null)
@@ -71,9 +72,10 @@ const createRules = {
 }
 
 function renderTag({ option, handleClose }) {
+  const isSystem = systemTagIds.value.has(option.value)
   return h(NTag, {
     style: { background: option.color, color: '#fff', border: 'none' },
-    closable: true,
+    closable: !isSystem,
     size: 'small',
     onClose: handleClose,
   }, { default: () => option.label })
@@ -99,11 +101,19 @@ async function saveTag() {
   }
 }
 
+async function loadSystemTagIds() {
+  const specialTypes = await db.specialTaxTypes.toArray()
+  const allSystemNames = [...STATIC_TAX_TAG_NAMES, ...specialTypes.map(t => t.name)]
+  const systemTags = await db.tags.where('name').anyOf(allSystemNames).toArray()
+  systemTagIds.value = new Set(systemTags.map(t => t.id))
+}
+
 onMounted(async () => {
   const [, clientTagLinks] = await Promise.all([
     tagsStore.list.length === 0 ? tagsStore.fetchAll() : Promise.resolve(),
     db.clientTags.where('clientId').equals(Number(props.clientId)).toArray(),
   ])
+  await loadSystemTagIds()
   selected.value = clientTagLinks.map(l => l.tagId)
 })
 </script>
