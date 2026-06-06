@@ -1,12 +1,12 @@
 <template>
   <n-layout has-sider style="height: 100vh;">
     <n-layout-sider
-      bordered
+      class="app-sider"
       collapse-mode="width"
       :collapsed-width="56"
       :width="220"
       :collapsed="ui.sidebarCollapsed"
-      show-trigger
+      show-trigger="arrow-circle"
       @collapse="ui.sidebarCollapsed = true"
       @expand="ui.sidebarCollapsed = false"
     >
@@ -119,6 +119,7 @@ const menuOptions = [
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
+  color: #fff;
 }
 
 .logo-text {
@@ -132,5 +133,78 @@ const menuOptions = [
   left: 0;
   right: 0;
   padding: 0 4px;
+}
+
+/* ── Брендова кольорова панель ───────────────────────────── */
+.app-sider {
+  background: linear-gradient(180deg, #18a058 0%, #0f7a43 100%);
+}
+
+.app-sider :deep(.n-layout-sider-scroll-container) {
+  background: transparent;
+}
+
+/* Тригер згортання — зелена стрілка на світлому колі */
+.app-sider :deep(.n-layout-toggle-button .n-base-icon),
+.app-sider :deep(.n-layout-toggle-button__icon) {
+  color: #18a058 !important;
+}
+
+/* Пункти меню — світлий текст та іконки */
+.app-sider :deep(.n-menu .n-menu-item-content),
+.app-sider :deep(.n-menu .n-menu-item-content .n-menu-item-content__icon),
+.app-sider :deep(.n-menu .n-menu-item-content .n-menu-item-content-header) {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
+/* Прибрати стандартну зелену "плитку" Naive у фоні пунктів */
+.app-sider :deep(.n-menu .n-menu-item-content::before) {
+  background-color: transparent !important;
+  left: 6px;
+  right: 6px;
+  border-radius: 6px;
+}
+
+/* Hover */
+.app-sider :deep(.n-menu .n-menu-item-content:hover::before) {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+}
+.app-sider :deep(.n-menu .n-menu-item-content:hover),
+.app-sider :deep(.n-menu .n-menu-item-content:hover .n-menu-item-content__icon),
+.app-sider :deep(.n-menu .n-menu-item-content:hover .n-menu-item-content-header) {
+  color: #fff !important;
+}
+
+/* Активний пункт */
+.app-sider :deep(.n-menu .n-menu-item-content--selected::before) {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+.app-sider :deep(.n-menu .n-menu-item-content--selected),
+.app-sider :deep(.n-menu .n-menu-item-content--selected .n-menu-item-content__icon),
+.app-sider :deep(.n-menu .n-menu-item-content--selected .n-menu-item-content-header) {
+  color: #fff !important;
+  font-weight: 600;
+}
+
+/* Білий акцент зліва на активному пункті */
+.app-sider :deep(.n-menu .n-menu-item-content--selected::after) {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background-color: #fff;
+}
+
+/* Кнопка перемикання теми у футері */
+.app-sider :deep(.sidebar-footer .n-button),
+.app-sider :deep(.sidebar-footer .n-button .n-icon) {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+.app-sider :deep(.sidebar-footer .n-button:hover),
+.app-sider :deep(.sidebar-footer .n-button:hover .n-icon) {
+  color: #fff !important;
 }
 </style>

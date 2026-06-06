@@ -55,6 +55,13 @@
         </div>
       </n-tab-pane>
 
+      <!-- ── Бекап ── -->
+      <n-tab-pane name="backup" tab="Бекап">
+        <div style="margin-top: 12px;">
+          <BackupPanel />
+        </div>
+      </n-tab-pane>
+
       <!-- ── Оновлення ── -->
       <n-tab-pane name="update" tab="Оновлення">
         <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 16px; max-width: 520px;">
@@ -221,6 +228,7 @@ import { useOwnerProfileStore } from '@/stores/ownerProfile.js'
 import ServiceRatesPanel from '@/modules/billing/components/ServiceRatesPanel.vue'
 import ReportRulesPanel from '@/modules/tax/components/ReportRulesPanel.vue'
 import SpecialTaxTypesPanel from '@/modules/tax/components/SpecialTaxTypesPanel.vue'
+import BackupPanel from '@/modules/backup/components/BackupPanel.vue'
 import { useUpdater } from '@/composables/useUpdater.js'
 import { getCurrentVersionSync } from '@/services/UpdaterService.js'
 

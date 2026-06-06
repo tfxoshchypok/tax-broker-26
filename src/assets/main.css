@@ -23,4 +23,30 @@ body {
   --sidebar-width: 220px;
   --sidebar-collapsed-width: 56px;
   --header-height: 56px;
+  --brand-color: #18a058;
+}
+
+/* ── Заголовок сторінки: смужка + зелений текст + фон-банер ── */
+.n-page-header {
+  background-color: rgba(24, 160, 88, 0.07);
+  border-left: 4px solid var(--brand-color);
+  border-radius: 8px;
+  padding: 14px 18px;
+}
+
+.n-page-header .n-page-header-header__title {
+  color: var(--brand-color);
+  font-weight: 700;
+  font-size: 22px;
+}
+
+/* Кнопка "назад" у зеленому тоні для гармонії */
+.n-page-header .n-page-header__back {
+  color: var(--brand-color);
+}
+
+/* ── Мітка обраного чекбокса — зелена та жирніша ── */
+.n-checkbox.n-checkbox--checked .n-checkbox__label {
+  color: var(--brand-color);
+  font-weight: 600;
 }
