@@ -16,6 +16,8 @@ function computeStatus(instance) {
   return 'pending'
 }
 
+const ukCollator = new Intl.Collator('uk')
+
 export const useTaxDashboardStore = defineStore('taxDashboard', () => {
   const viewMode = ref(localStorage.getItem('mb_tax_view') || 'list')
   const categoryFilter = ref([])
@@ -49,23 +51,47 @@ export const useTaxDashboardStore = defineStore('taxDashboard', () => {
     return haystack.includes(query)
   }
 
-  const groupedByClient = computed(() => {
-    const nameQuery = nameFilter.value.trim().toLowerCase()
-    const activeClients = clientsStore.list.filter(c => {
-      if (!isClientVisibleForMonth(c, year.value, month.value)) return false
-      if (groupFilter.value != null && c.groupId !== groupFilter.value) return false
-      if (!clientMatchesName(c, nameQuery)) return false
-      return true
-    })
+  // Індекс інстансів: ключ `clientId|ruleId|period` → instance.
+  // Будується один раз на зміну instances, замінює лінійний .find() у циклі.
+  // Складений індекс [clientId+ruleId+period] у БД не унікальний, тож за наявності
+  // дублікатів зберігаємо ПЕРШИЙ запис — тотожно до поведінки колишнього .find().
+  const instanceIndex = computed(() => {
+    const map = new Map()
+    for (const i of instances.value) {
+      const key = `${i.clientId}|${i.ruleId}|${i.period}`
+      if (!map.has(key)) map.set(key, i)
+    }
+    return map
+  })
 
-    const groups = []
-    for (const client of activeClients) {
+  // Важкий розрахунок податкового движка. Залежить лише від клієнтів, профілів,
+  // правил, року та місяця — НЕ від фільтрів. Тому набір тексту в пошуку чи
+  // перемикання фільтрів не запускає движок наново.
+  const expectedByClient = computed(() => {
+    const result = []
+    for (const client of clientsStore.list) {
+      if (!isClientVisibleForMonth(client, year.value, month.value)) continue
+
       const profile = profilesStore.getProfile(client.id)
       if (!profile) continue
 
       const profileWithType = { ...profile, clientType: client.clientType }
       const expected = getExpectedReports(profileWithType, year.value, month.value, rulesStore.activeForEngine)
       if (expected.length === 0) continue
+
+      result.push({ client, expected })
+    }
+    return result
+  })
+
+  const groupedByClient = computed(() => {
+    const nameQuery = nameFilter.value.trim().toLowerCase()
+    const index = instanceIndex.value
+    const groups = []
+
+    for (const { client, expected } of expectedByClient.value) {
+      if (groupFilter.value != null && client.groupId !== groupFilter.value) continue
+      if (!clientMatchesName(client, nameQuery)) continue
 
       const filtered = categoryFilter.value.length > 0
         ? expected.filter(r => categoryFilter.value.includes(r.rule.category))
@@ -74,9 +100,7 @@ export const useTaxDashboardStore = defineStore('taxDashboard', () => {
       const reports = filtered
         .filter(({ dueDate }) => dueDate >= client.createdAt)
         .map(({ rule, period, dueDate, submissionStart }) => {
-          const instance = instances.value.find(
-            i => i.clientId === client.id && i.ruleId === rule.id && i.period === period
-          ) ?? null
+          const instance = index.get(`${client.id}|${rule.id}|${period}`) ?? null
           const status = computeStatus(instance)
           return { rule, period, dueDate, submissionStart, status, instance }
         })
@@ -106,7 +130,7 @@ export const useTaxDashboardStore = defineStore('taxDashboard', () => {
       const diff = score(a) - score(b)
       if (diff !== 0) return diff
       const nameOf = (g) => g.client.lastName || g.client.company || ''
-      return nameOf(a).localeCompare(nameOf(b), 'uk')
+      return ukCollator.compare(nameOf(a), nameOf(b))
     })
 
     return groups

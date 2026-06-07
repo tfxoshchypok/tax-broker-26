@@ -14,6 +14,9 @@
               {{ clientName }}
             </n-button>
             · {{ periodLabel }}
+            <span v-if="invoiceDate" style="margin-left: 8px; opacity: 0.55; font-size: 13px;">
+              від {{ formatDate(invoiceDate) }}
+            </span>
             <span v-if="invoice.confirmedAt" style="margin-left: 8px; opacity: 0.55; font-size: 13px;">
               Підтверджено {{ formatDate(invoice.confirmedAt) }}
             </span>
@@ -27,9 +30,29 @@
                 <n-button type="primary" @click="doConfirm">Підтвердити</n-button>
               </template>
               <template v-if="invoice.status === 'confirmed'">
-                <n-button @click="doRevert">Редагувати</n-button>
-                <n-button type="success" @click="doPaid">Оплачено ✓</n-button>
+                <n-button @click="doRevert">
+                  <template #icon><n-icon><CreateOutline /></n-icon></template>
+                  Редагувати
+                </n-button>
+                <n-button type="success" @click="doPaid">
+                  <template #icon><n-icon><CashOutline /></n-icon></template>
+                  Оплатити
+                </n-button>
               </template>
+              <template v-if="invoice.status === 'paid'">
+                <n-button @click="viewPayment">
+                  <template #icon><n-icon><EyeOutline /></n-icon></template>
+                  Переглянути оплату
+                </n-button>
+                <n-button type="error" ghost @click="doCancelPayment">
+                  <template #icon><n-icon><ArrowUndoOutline /></n-icon></template>
+                  Скасувати оплату
+                </n-button>
+              </template>
+              <n-button :disabled="!defaultTemplateId" @click="printWith(defaultTemplateId)">
+                <template #icon><n-icon><PrintOutline /></n-icon></template>
+                Друк
+              </n-button>
               <n-dropdown :options="menuOptions" @select="onMenuSelect">
                 <n-button>···</n-button>
               </n-dropdown>
@@ -50,6 +73,13 @@
         </div>
 
         <n-form style="margin-top: 16px;">
+          <n-form-item v-if="invoice.status === 'draft'" label="Дата рахунку">
+            <n-date-picker
+              :value="invoiceDate"
+              type="date"
+              @update:value="onDateChange"
+            />
+          </n-form-item>
           <n-form-item label="Тип оплати">
             <n-radio-group
               :value="invoice.paymentType ?? 'cash'"
@@ -103,12 +133,14 @@ import { ref, computed, onMounted, h } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   NPageHeader, NButton, NSpace, NSpin, NForm, NFormItem, NInput, NDropdown, NIcon,
-  NRadioGroup, NRadioButton, NDivider, useMessage, useDialog,
+  NRadioGroup, NRadioButton, NDivider, NDatePicker, useMessage, useDialog,
 } from 'naive-ui'
-import { ArrowUndoOutline, CloseCircleOutline, PrintOutline } from '@vicons/ionicons5'
+import { ArrowUndoOutline, CloseCircleOutline, PrintOutline, CreateOutline, CashOutline, EyeOutline } from '@vicons/ionicons5'
 import { useClientsStore } from '@/stores/clients.js'
+import { useDocumentTemplatesStore } from '@/modules/documents/stores/documentTemplates.js'
 import { BillingService } from '../services/BillingService.js'
 import { PaymentService } from '@/modules/payments/services/PaymentService.js'
+import { periodFromTs } from '../utils.js'
 import InvoiceStatusBadge from '../components/InvoiceStatusBadge.vue'
 import InvoiceLineEditor from '../components/InvoiceLineEditor.vue'
 import RegisterPaymentModal from '@/modules/payments/components/RegisterPaymentModal.vue'
@@ -118,6 +150,7 @@ const props = defineProps({ id: { type: String, required: true } })
 const router = useRouter()
 const route  = useRoute()
 const clientsStore = useClientsStore()
+const templatesStore = useDocumentTemplatesStore()
 const message = useMessage()
 const dialog  = useDialog()
 
@@ -149,16 +182,39 @@ const periodLabel = computed(() => {
   return `${UA_MONTHS[Number(m) - 1]} ${y}`
 })
 
+const invoiceDate = computed(() => invoice.value?.date ?? invoice.value?.createdAt ?? null)
+
+async function onDateChange(ts) {
+  if (!invoice.value || ts == null) return
+  const period = periodFromTs(ts)
+  invoice.value.date = ts
+  invoice.value.period = period
+  await BillingService.updateDate(invoice.value.id, ts, period)
+}
+
 const icon = (component) => () => h(NIcon, null, { default: () => h(component) })
 
+// Шаблони рахунка з довідника; типовий — для кнопки «Друк».
+const invoiceTemplates = computed(() => templatesStore.list.filter(t => t.type === 'invoices'))
+const defaultTemplateId = computed(() => {
+  const list = invoiceTemplates.value
+  return (list.find(t => t.isDefault) ?? list[0])?.id ?? null
+})
+
 const menuOptions = computed(() => {
+  const templateChildren = invoiceTemplates.value.map(t => ({
+    label: t.name + (t.isDefault ? ' (типовий)' : ''),
+    key: `tpl:${t.id}`,
+  }))
   const opts = [
-    { label: 'Друкувати', key: 'print', icon: icon(PrintOutline) },
+    {
+      label: 'Друк за шаблоном',
+      key: 'print-templates',
+      icon: icon(PrintOutline),
+      disabled: templateChildren.length === 0,
+      children: templateChildren.length ? templateChildren : undefined,
+    },
   ]
-  if (invoice.value?.status === 'paid') {
-    opts.push({ type: 'divider', key: 'd0' })
-    opts.push({ label: 'Скасувати оплату', key: 'revert-paid', icon: icon(ArrowUndoOutline) })
-  }
   if (invoice.value?.status !== 'cancelled') {
     opts.push({ type: 'divider', key: 'd1' })
     opts.push({ label: 'Скасувати рахунок', key: 'cancel', icon: icon(CloseCircleOutline) })
@@ -166,9 +222,13 @@ const menuOptions = computed(() => {
   return opts
 })
 
+function printWith(templateId) {
+  if (!templateId) return
+  router.push({ name: 'billing-print-template', params: { id: props.id }, query: { templateId } })
+}
+
 function onMenuSelect(key) {
-  if (key === 'print') router.push({ name: 'billing-print', params: { id: props.id } })
-  if (key === 'revert-paid') doRevertPaid()
+  if (key.startsWith('tpl:')) printWith(Number(key.slice(4)))
   if (key === 'cancel') doCancel()
 }
 
@@ -287,16 +347,24 @@ async function onPaymentRegistered() {
   message.success('Рахунок оплачено')
 }
 
-async function doRevertPaid() {
+function viewPayment() {
+  if (linkedPayments.value.length === 0) {
+    message.warning('Платіж не знайдено')
+    return
+  }
+  router.push({ name: 'payment-detail', params: { id: linkedPayments.value[0].id } })
+}
+
+async function doCancelPayment() {
   dialog.warning({
     title: 'Скасувати оплату?',
-    content: 'Рахунок буде повернуто до статусу "Підтверджено".',
-    positiveText: 'Так',
+    content: 'Повʼязаний платіж буде видалено, а рахунок повернеться до статусу «Підтверджено».',
+    positiveText: 'Скасувати оплату',
     negativeText: 'Назад',
     async onPositiveClick() {
-      await BillingService.revertToConfirmed(props.id)
+      await BillingService.cancelPayment(props.id)
       await load()
-      message.info('Ознаку оплати скасовано')
+      message.info('Оплату скасовано')
     },
   })
 }
@@ -318,7 +386,11 @@ async function doCancel() {
 onMounted(async () => {
   loading.value = true
   if (clientsStore.list.length === 0) await clientsStore.fetchAll()
-  await Promise.all([load(), BillingService.getActiveRates().then(r => { rates.value = r })])
+  await Promise.all([
+    load(),
+    BillingService.getActiveRates().then(r => { rates.value = r }),
+    templatesStore.fetchAll(),
+  ])
   loading.value = false
 })
 </script>

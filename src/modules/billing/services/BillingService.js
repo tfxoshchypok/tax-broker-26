@@ -1,4 +1,5 @@
 import { db } from '@/db/index.js'
+import { PaymentService } from '@/modules/payments/services/PaymentService.js'
 
 export const BillingService = {
 
@@ -80,6 +81,7 @@ export const BillingService = {
     return db.invoices.add({
       ...data,
       number,
+      date: data.date ?? now,
       status: data.status ?? 'draft',
       paymentType: data.paymentType ?? 'cash',
       notes: data.notes ?? '',
@@ -87,6 +89,10 @@ export const BillingService = {
       confirmedAt: null,
       paidAt: null,
     })
+  },
+
+  async updateDate(id, date, period) {
+    await db.invoices.update(Number(id), { date, period })
   },
 
   async updatePaymentType(id, paymentType) {
@@ -113,6 +119,13 @@ export const BillingService = {
     await db.invoices.update(Number(id), { status: 'confirmed', paidAt: null })
   },
 
+  // Скасування оплати: видаляє повʼязані платежі та повертає рахунок у «Підтверджено».
+  async cancelPayment(invoiceId) {
+    const payments = await PaymentService.getPaymentsByInvoiceId(invoiceId)
+    for (const p of payments) await PaymentService.deletePayment(p.id)
+    await BillingService.revertToConfirmed(invoiceId)
+  },
+
   async updateNotes(id, notes) {
     await db.invoices.update(Number(id), { notes })
   },
@@ -123,6 +136,14 @@ export const BillingService = {
     return db.invoiceLines
       .where('invoiceId').equals(Number(invoiceId))
       .sortBy('sortOrder')
+  },
+
+  // Позиції для багатьох рахунків одним запитом (без N+1). Без сортування за
+  // sortOrder — викликач групує за invoiceId; для підрахунку сум порядок не важить.
+  async getLinesByInvoiceIds(invoiceIds) {
+    const ids = invoiceIds.map(Number)
+    if (ids.length === 0) return []
+    return db.invoiceLines.where('invoiceId').anyOf(ids).toArray()
   },
 
   async bulkCreateLines(lines) {

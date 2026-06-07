@@ -51,6 +51,9 @@
           <n-input v-model:value="form.position" placeholder="Директор" />
         </n-form-item-gi>
 
+        <n-form-item-gi ref="ipnItemRef" :label="ipnLabel(form.clientType)" path="ipn">
+          <n-input v-model:value="form.ipn" :placeholder="ipnPlaceholder(form.clientType)" />
+        </n-form-item-gi>
         <n-form-item-gi label="Телефон" path="phone">
           <n-input v-model:value="form.phone" placeholder="+380501234567" />
         </n-form-item-gi>
@@ -87,7 +90,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   NPageHeader, NForm, NFormItemGi, NGrid, NInput, NSelect, NButton, NSpace,
@@ -97,6 +100,7 @@ import { useMessage } from 'naive-ui'
 import { useClientsStore } from '@/stores/clients.js'
 import { useGroupsStore } from '@/stores/groups.js'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts.js'
+import { ipnLabel, ipnPlaceholder } from '@/constants/clients.js'
 
 const props = defineProps({ id: { type: String, default: null } })
 const router = useRouter()
@@ -106,12 +110,14 @@ const message = useMessage()
 
 const isEdit = computed(() => !!props.id)
 const formRef = ref(null)
+const ipnItemRef = ref(null)
 const saving = ref(false)
 
 const form = reactive({
   clientType: 'individual',
   firstName: '',
   lastName: '',
+  ipn: '',
   phone: '',
   email: '',
   company: '',
@@ -143,7 +149,22 @@ const rules = computed(() => ({
     trigger: 'blur',
     validator: (_, v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) || new Error('Невірний формат email'),
   },
+  ipn: {
+    trigger: 'blur',
+    validator: (_, v) => {
+      if (!v) return true
+      const len = form.clientType === 'legal' ? 8 : 10
+      return new RegExp(`^\\d{${len}}$`).test(v) ||
+        new Error(`${ipnLabel(form.clientType)} має містити ${len} цифр`)
+    },
+  },
 }))
+
+// Зміна типу клієнта змінює очікувану довжину коду — ревалідуємо поле,
+// щоб помилка зʼявилась/зникла одразу, не чекаючи blur.
+watch(() => form.clientType, () => {
+  ipnItemRef.value?.validate().catch(() => {})
+})
 
 async function submit() {
   await formRef.value.validate()

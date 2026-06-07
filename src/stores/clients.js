@@ -22,7 +22,7 @@ export const useClientsStore = defineStore('clients', () => {
   const filtered = computed(() => {
     const q = searchQuery.value.toLowerCase().trim()
     return list.value.filter(c => {
-      const matchesSearch = !q || [c.firstName, c.lastName, c.email, c.phone, c.company]
+      const matchesSearch = !q || [c.firstName, c.lastName, c.email, c.phone, c.company, c.ipn]
         .some(v => v?.toLowerCase().includes(q))
       const matchesStatus = !statusFilter.value || c.status === statusFilter.value
       const matchesTags = tagFilter.value.length === 0 ||

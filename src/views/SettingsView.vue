@@ -55,6 +55,13 @@
         </div>
       </n-tab-pane>
 
+      <!-- ── Шаблони документів ── -->
+      <n-tab-pane name="templates" tab="Шаблони">
+        <div style="margin-top: 12px;">
+          <TemplatesListPanel />
+        </div>
+      </n-tab-pane>
+
       <!-- ── Бекап ── -->
       <n-tab-pane name="backup" tab="Бекап">
         <div style="margin-top: 12px;">
@@ -216,6 +223,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   NPageHeader, NTabs, NTabPane, NCard, NForm, NFormItem,
   NRadioGroup, NRadioButton, NTable, NTag, NSpace, NInput, NButton, NSwitch,
@@ -229,6 +237,7 @@ import ServiceRatesPanel from '@/modules/billing/components/ServiceRatesPanel.vu
 import ReportRulesPanel from '@/modules/tax/components/ReportRulesPanel.vue'
 import SpecialTaxTypesPanel from '@/modules/tax/components/SpecialTaxTypesPanel.vue'
 import BackupPanel from '@/modules/backup/components/BackupPanel.vue'
+import TemplatesListPanel from '@/modules/documents/components/TemplatesListPanel.vue'
 import { useUpdater } from '@/composables/useUpdater.js'
 import { getCurrentVersionSync } from '@/services/UpdaterService.js'
 
@@ -236,7 +245,8 @@ const ui = useUiStore()
 const ownerStore = useOwnerProfileStore()
 const message = useMessage()
 
-const activeTab    = ref('requisites')
+const route        = useRoute()
+const activeTab    = ref(typeof route.query.tab === 'string' ? route.query.tab : 'requisites')
 const ownerFormRef = ref(null)
 const ownerSaving  = ref(false)
 

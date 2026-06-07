@@ -78,6 +78,7 @@ import { getExpectedReports } from '@/modules/tax/services/TaxReportEngine.js'
 import { TaxReportService } from '@/modules/tax/services/TaxReportService.js'
 import { BillingService } from '../services/BillingService.js'
 import { InvoiceGenerator } from '../services/InvoiceGenerator.js'
+import { periodFromTs } from '../utils.js'
 import InvoiceLineEditor from '../components/InvoiceLineEditor.vue'
 
 const router = useRouter()
@@ -88,10 +89,22 @@ const rulesStore = useReportRulesStore()
 const message = useMessage()
 
 const clientId = computed(() => Number(route.query.clientId))
-const period   = computed(() => route.query.period ?? '')
 
-const periodYear  = computed(() => Number(period.value.split('-')[0]))
-const periodMonth = computed(() => Number(period.value.split('-')[1]))
+// Дата рахунку: явна ?date (timestamp) або 1-ше число місяця з ?period (yyyy-MM),
+// інакше — сьогодні. Період завжди виводиться з дати.
+const invoiceDate = computed(() => {
+  if (route.query.date) return Number(route.query.date)
+  if (route.query.period) {
+    const [y, m] = String(route.query.period).split('-').map(Number)
+    return new Date(y, m - 1, 1).getTime()
+  }
+  return Date.now()
+})
+
+const period   = computed(() => periodFromTs(invoiceDate.value))
+
+const periodYear  = computed(() => new Date(invoiceDate.value).getFullYear())
+const periodMonth = computed(() => new Date(invoiceDate.value).getMonth() + 1)
 
 const loading = ref(true)
 const saving  = ref(false)
@@ -189,6 +202,7 @@ async function saveInvoice(status) {
     const invoiceId = await BillingService.createInvoice({
       clientId: clientId.value,
       period: period.value,
+      date: invoiceDate.value,
       status,
       paymentType: form.value.paymentType,
       notes: form.value.notes,

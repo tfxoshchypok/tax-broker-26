@@ -37,6 +37,7 @@
                 <n-descriptions-item v-if="client.company" label="Компанія">{{ client.company }}</n-descriptions-item>
                 <n-descriptions-item v-if="client.position" label="Посада">{{ client.position }}</n-descriptions-item>
               </template>
+              <n-descriptions-item v-if="client.ipn" :label="ipnLabel(client.clientType)">{{ client.ipn }}</n-descriptions-item>
               <n-descriptions-item label="Телефон">{{ client.phone || '—' }}</n-descriptions-item>
               <n-descriptions-item label="Email">{{ client.email || '—' }}</n-descriptions-item>
               <n-descriptions-item label="Адреса" :span="2">{{ client.address || '—' }}</n-descriptions-item>
@@ -86,7 +87,7 @@ import ClientTagsSelect from '@/components/ClientTagsSelect.vue'
 import ClientTaxView from '@/modules/tax/views/ClientTaxView.vue'
 import ClientInvoicesTab from '@/modules/billing/components/ClientInvoicesTab.vue'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts.js'
-import { statusLabel, statusType, CLIENT_TYPE_MAP } from '@/constants/clients.js'
+import { statusLabel, statusType, CLIENT_TYPE_MAP, ipnLabel } from '@/constants/clients.js'
 
 const props = defineProps({ id: { type: String, required: true } })
 const router = useRouter()

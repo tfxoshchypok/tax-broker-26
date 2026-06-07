@@ -46,7 +46,22 @@ export const useBillingDashboardStore = defineStore('billingDashboard', () => {
 
   async function refresh() {
     if (clientsStore.list.length === 0) await clientsStore.fetchAll()
-    invoices.value = await BillingService.getByPeriod(period.value)
+    const list = await BillingService.getByPeriod(period.value)
+
+    // Тотали лише для не-чернеток: один пакетний запит позицій + групування
+    // в памʼяті за invoiceId (замість N окремих читань).
+    const billable = list.filter(inv => inv.status !== 'draft')
+    if (billable.length > 0) {
+      const lines = await BillingService.getLinesByInvoiceIds(billable.map(inv => inv.id))
+      const totals = {}
+      for (const l of lines) {
+        if (!l.included) continue
+        totals[l.invoiceId] = (totals[l.invoiceId] ?? 0) + (l.finalPrice ?? l.qty * l.unitPrice)
+      }
+      for (const inv of billable) inv._total = totals[inv.id] ?? 0
+    }
+
+    invoices.value = list
   }
 
   return { year, month, period, statusFilter, invoices, groupedByClient, refresh, prevMonth, nextMonth }
