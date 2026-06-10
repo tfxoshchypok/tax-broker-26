@@ -4,7 +4,10 @@ import { useClientsStore } from '@/stores/clients.js'
 import { useTaxProfilesStore } from './taxProfiles.js'
 import { useReportRulesStore } from './reportRules.js'
 import { TaxReportService } from '../services/TaxReportService.js'
+import { IndividualReportService } from '../services/IndividualReportService.js'
 import { getExpectedReports } from '../services/TaxReportEngine.js'
+import { getIndividualReports } from '../services/IndividualReportEngine.js'
+import { useIndividualReportTypesStore } from './individualReportTypes.js'
 import { useYearMonth } from '@/composables/useYearMonth.js'
 import { db } from '@/db/index.js'
 
@@ -26,10 +29,12 @@ export const useTaxDashboardStore = defineStore('taxDashboard', () => {
   const nameFilter = ref('')
 
   const instances = ref([])
+  const individualAssignments = ref([])
 
   const clientsStore = useClientsStore()
   const profilesStore = useTaxProfilesStore()
   const rulesStore = useReportRulesStore()
+  const typesStore = useIndividualReportTypesStore()
 
   const { year, month, prevMonth, nextMonth } = useYearMonth(() => refresh())
 
@@ -64,19 +69,33 @@ export const useTaxDashboardStore = defineStore('taxDashboard', () => {
     return map
   })
 
+  // Призначення індивідуальних звітів, згруповані за клієнтом.
+  const assignmentsByClient = computed(() => {
+    const map = {}
+    for (const a of individualAssignments.value) {
+      (map[a.clientId] ??= []).push(a)
+    }
+    return map
+  })
+
   // Важкий розрахунок податкового движка. Залежить лише від клієнтів, профілів,
-  // правил, року та місяця — НЕ від фільтрів. Тому набір тексту в пошуку чи
-  // перемикання фільтрів не запускає движок наново.
+  // правил, індивідуальних звітів, року та місяця — НЕ від фільтрів. Тому набір
+  // тексту в пошуку чи перемикання фільтрів не запускає движок наново.
   const expectedByClient = computed(() => {
     const result = []
+    const typesById = typesStore.byId
+    const byClient = assignmentsByClient.value
+
     for (const client of clientsStore.list) {
       if (!isClientVisibleForMonth(client, year.value, month.value)) continue
 
       const profile = profilesStore.getProfile(client.id)
-      if (!profile) continue
+      const ruleReports = profile
+        ? getExpectedReports({ ...profile, clientType: client.clientType }, year.value, month.value, rulesStore.activeForEngine)
+        : []
+      const individualReports = getIndividualReports(byClient[client.id] ?? [], typesById, year.value, month.value)
 
-      const profileWithType = { ...profile, clientType: client.clientType }
-      const expected = getExpectedReports(profileWithType, year.value, month.value, rulesStore.activeForEngine)
+      const expected = [...ruleReports, ...individualReports]
       if (expected.length === 0) continue
 
       result.push({ client, expected })
@@ -159,14 +178,19 @@ export const useTaxDashboardStore = defineStore('taxDashboard', () => {
       .toArray()
   }
 
+  async function loadAssignments() {
+    individualAssignments.value = await IndividualReportService.getAll()
+  }
+
   async function refresh() {
     if (clientsStore.list.length === 0) await clientsStore.fetchAll()
     const relevantClients = clientsStore.list.filter(c => c.status === 'active' || c.status === 'inactive')
     await Promise.all([
       ...relevantClients.map(c => profilesStore.load(c.id)),
       rulesStore.list.length === 0 ? rulesStore.fetchAll() : Promise.resolve(),
+      typesStore.list.length === 0 ? typesStore.fetchAll() : Promise.resolve(),
     ])
-    await loadInstances()
+    await Promise.all([loadInstances(), loadAssignments()])
   }
 
   async function markContacted(clientId, ruleId, period, dueDate) {

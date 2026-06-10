@@ -85,6 +85,14 @@
           />
         </div>
       </n-spin>
+
+      <ClientIndividualReportsPanel
+        :assignments="individualAssignments"
+        :types="indTypesStore.list"
+        @create="onCreateAssignment"
+        @update="onUpdateAssignment"
+        @delete="onDeleteAssignment"
+      />
     </template>
   </div>
 </template>
@@ -98,10 +106,14 @@ import { useRouter } from 'vue-router'
 import { useClientsStore } from '@/stores/clients.js'
 import { useTaxProfilesStore } from '../stores/taxProfiles.js'
 import { useReportRulesStore } from '../stores/reportRules.js'
+import { useIndividualReportTypesStore } from '../stores/individualReportTypes.js'
 import { TaxReportService } from '../services/TaxReportService.js'
+import { IndividualReportService } from '../services/IndividualReportService.js'
 import { getExpectedReports } from '../services/TaxReportEngine.js'
+import { getIndividualReports } from '../services/IndividualReportEngine.js'
 import TaxProfileForm from '../components/TaxProfileForm.vue'
 import TaxReportRow from '../components/TaxReportRow.vue'
+import ClientIndividualReportsPanel from '../components/ClientIndividualReportsPanel.vue'
 
 const props = defineProps({
   clientId:  { type: [String, Number], required: true },
@@ -113,6 +125,7 @@ const clientsStore = useClientsStore()
 const profilesStore = useTaxProfilesStore()
 const rulesStore = useReportRulesStore()
 const taxTypesStore = useSpecialTaxTypesStore()
+const indTypesStore = useIndividualReportTypesStore()
 const loading = ref(false)
 const reportsLoading = ref(false)
 const editing = ref(false)
@@ -123,6 +136,7 @@ const month = ref(now.getMonth() + 1)
 
 const profile = computed(() => profilesStore.getProfile(props.clientId))
 const instances = ref([])
+const individualAssignments = ref([])
 
 const UA_MONTHS = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень']
 const monthLabel = computed(() => `${UA_MONTHS[month.value - 1]} ${year.value}`)
@@ -148,11 +162,18 @@ const specialTaxes = computed(() => {
 })
 
 const reports = computed(() => {
-  if (!profile.value) return []
   const client = clientsStore.list.find(c => c.id === Number(props.clientId))
-  const profileWithType = client ? { ...profile.value, clientType: client.clientType } : profile.value
-  return getExpectedReports(profileWithType, year.value, month.value, rulesStore.activeForEngine)
+  const profileWithType = profile.value
+    ? (client ? { ...profile.value, clientType: client.clientType } : profile.value)
+    : null
+  const ruleResults = profileWithType
+    ? getExpectedReports(profileWithType, year.value, month.value, rulesStore.activeForEngine)
+    : []
+  const individualResults = getIndividualReports(individualAssignments.value, indTypesStore.byId, year.value, month.value)
+
+  return [...ruleResults, ...individualResults]
     .filter(({ dueDate }) => dueDate >= props.createdAt)
+    .sort((a, b) => a.dueDate - b.dueDate)
     .map(({ rule, period, dueDate, submissionStart }) => {
       const instance = instances.value.find(
         i => i.clientId === Number(props.clientId) && i.ruleId === rule.id && i.period === period
@@ -168,14 +189,34 @@ async function loadInstances() {
   reportsLoading.value = false
 }
 
+async function loadAssignments() {
+  individualAssignments.value = await IndividualReportService.getByClientId(props.clientId)
+}
+
 async function load() {
   loading.value = true
   if (clientsStore.list.length === 0) await clientsStore.fetchAll()
   if (rulesStore.list.length === 0) await rulesStore.fetchAll()
   if (taxTypesStore.list.length === 0) await taxTypesStore.fetchAll()
+  if (indTypesStore.list.length === 0) await indTypesStore.fetchAll()
   await profilesStore.load(props.clientId)
   loading.value = false
-  await loadInstances()
+  await Promise.all([loadInstances(), loadAssignments()])
+}
+
+async function onCreateAssignment(data) {
+  await IndividualReportService.add({ ...data, clientId: props.clientId })
+  await loadAssignments()
+}
+
+async function onUpdateAssignment({ id, data }) {
+  await IndividualReportService.update(id, data)
+  await loadAssignments()
+}
+
+async function onDeleteAssignment(id) {
+  await IndividualReportService.remove(id)
+  await loadAssignments()
 }
 
 async function onSave(data) {

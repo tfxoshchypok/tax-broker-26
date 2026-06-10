@@ -1,6 +1,6 @@
 {
   "applicationId": "ua.taxbroker26.app",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "defaultMode": "window",
   "port": 5174,
   "url": "/",

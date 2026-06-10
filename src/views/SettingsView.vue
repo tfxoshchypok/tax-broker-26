@@ -55,6 +55,13 @@
         </div>
       </n-tab-pane>
 
+      <!-- ── Індивідуальні звіти ── -->
+      <n-tab-pane name="individual-reports" tab="Індивідуальні звіти">
+        <div style="margin-top: 12px;">
+          <IndividualReportTypesPanel />
+        </div>
+      </n-tab-pane>
+
       <!-- ── Шаблони документів ── -->
       <n-tab-pane name="templates" tab="Шаблони">
         <div style="margin-top: 12px;">
@@ -236,6 +243,7 @@ import { useOwnerProfileStore } from '@/stores/ownerProfile.js'
 import ServiceRatesPanel from '@/modules/billing/components/ServiceRatesPanel.vue'
 import ReportRulesPanel from '@/modules/tax/components/ReportRulesPanel.vue'
 import SpecialTaxTypesPanel from '@/modules/tax/components/SpecialTaxTypesPanel.vue'
+import IndividualReportTypesPanel from '@/modules/tax/components/IndividualReportTypesPanel.vue'
 import BackupPanel from '@/modules/backup/components/BackupPanel.vue'
 import TemplatesListPanel from '@/modules/documents/components/TemplatesListPanel.vue'
 import { useUpdater } from '@/composables/useUpdater.js'

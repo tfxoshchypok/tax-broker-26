@@ -166,3 +166,12 @@ db.version(11).stores(FULL_SCHEMA_V11).upgrade(async tx => {
     if (req.length > 0) rule.condition.requiredSpecialTaxes = req
   })
 })
+
+// Individual reports — types with manual per-client schedules (e.g. quarterly
+// excise licence instalments). Types live in `individualReportTypes`; per-client
+// assignments (personal deadline anchor + lead window) live in `individualReports`.
+// Status tracking reuses taxReportInstances (ruleId = type.key).
+db.version(15).stores({
+  individualReportTypes: '++id, &key, active',
+  individualReports:     '++id, clientId, typeId',
+})

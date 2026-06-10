@@ -131,6 +131,7 @@ import { useTaxDashboardStore } from '../stores/taxDashboard.js'
 import { useGroupsStore } from '@/stores/groups.js'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts.js'
 import { BillingService } from '@/modules/billing/services/BillingService.js'
+import { REPORT_CATEGORIES } from '../config/reportCategories.js'
 import TaxDashboardClientGroup from '../components/TaxDashboardClientGroup.vue'
 
 const router = useRouter()
@@ -153,16 +154,7 @@ async function loadInvoices() {
 
 watch(currentPeriod, loadInvoices)
 
-const CATEGORIES = [
-  { value: 'income',     label: 'Прибуток' },
-  { value: 'vat_excise', label: 'ПДВ+акциз' },
-  { value: 'local',      label: 'Місцеві' },
-  { value: 'resource',   label: 'Ресурсні' },
-  { value: 'rent',       label: 'Рентні' },
-  { value: 'financial',  label: 'Фінзвітність' },
-  { value: 'esv',        label: 'ЄСВ' },
-  { value: 'other',      label: 'Інші' },
-]
+const CATEGORIES = REPORT_CATEGORIES
 
 const UA_MONTHS = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень']
 const monthLabel = computed(() => `${UA_MONTHS[store.month - 1]} ${store.year}`)
