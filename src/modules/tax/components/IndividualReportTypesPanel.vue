@@ -31,6 +31,7 @@
                 <n-tag size="small" :bordered="false" :type="item.mode === 'periodic' ? 'info' : 'default'">
                   {{ item.mode === 'periodic' ? `Періодичний · кожні ${item.intervalMonths} міс.` : 'Одноразовий' }}
                 </n-tag>
+                <n-tag v-if="item.requiresAttention" size="small" :bordered="false" type="warning">Увага</n-tag>
               </n-space>
             </template>
             <template #header-extra>
@@ -76,6 +77,12 @@
           <n-input-number v-model:value="form.intervalMonths" :min="1" :max="60" style="width: 140px;" />
           <n-text depth="3" style="font-size: 12px; margin-left: 10px;">3 = щокварталу, 12 = щороку</n-text>
         </n-form-item>
+        <n-form-item label="Потребує особливої уваги">
+          <n-switch v-model:value="form.requiresAttention" />
+          <n-text depth="3" style="font-size: 12px; margin-left: 10px;">
+            помаранчева мітка на дашборді для всіх клієнтів із цим звітом
+          </n-text>
+        </n-form-item>
       </n-form>
 
       <template #footer>
@@ -116,7 +123,7 @@ const editing = ref(null)
 const nameError = ref('')
 const shortError = ref('')
 
-const DEFAULTS = { name: '', shortName: '', category: 'other', mode: 'one_off', intervalMonths: 3 }
+const DEFAULTS = { name: '', shortName: '', category: 'other', mode: 'one_off', intervalMonths: 3, requiresAttention: false }
 const form = reactive({ ...DEFAULTS })
 
 function openCreate() {
@@ -146,6 +153,7 @@ async function save() {
       category: form.category,
       mode: form.mode,
       intervalMonths: form.mode === 'periodic' ? form.intervalMonths : null,
+      requiresAttention: form.requiresAttention,
     }
     if (editing.value) {
       await store.update(editing.value.id, payload)

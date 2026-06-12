@@ -1,6 +1,7 @@
 <template>
-  <div class="report-row" :class="{ 'report-row--overdue': isOverdue, 'report-row--ignored': report.status === 'ignored' }">
+  <div class="report-row" :class="{ 'report-row--overdue': isOverdue, 'report-row--ignored': report.status === 'ignored', 'report-row--attention': report.rule.requiresAttention }">
     <TaxReportStatusBadge :status="report.status" />
+    <n-tag v-if="report.rule.requiresAttention" type="warning" size="small">Увага</n-tag>
 
     <span class="report-name">{{ report.rule.shortName }}</span>
     <span class="report-period">{{ report.period }}</span>
@@ -57,7 +58,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { NButton, NIcon, NPopover, NInput } from 'naive-ui'
+import { NButton, NIcon, NPopover, NInput, NTag } from 'naive-ui'
 import { RefreshOutline, CreateOutline, BanOutline } from '@vicons/ionicons5'
 import TaxReportStatusBadge from './TaxReportStatusBadge.vue'
 
@@ -113,6 +114,11 @@ function onNotesBlur(event, report) {
 
 .report-row--overdue {
   background: rgba(208, 48, 80, 0.05);
+}
+
+.report-row--attention {
+  background: rgba(240, 160, 32, 0.07);
+  box-shadow: inset 3px 0 0 0 var(--attention-color);
 }
 
 .report-row--ignored {

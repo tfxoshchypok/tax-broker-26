@@ -175,3 +175,15 @@ db.version(15).stores({
   individualReportTypes: '++id, &key, active',
   individualReports:     '++id, clientId, typeId',
 })
+
+// "Потребує особливої уваги" — прапорець на типах звітів (reportRules та
+// individualReportTypes). Поле не індексується, тому схема не змінюється —
+// лише проставляємо false наявним записам.
+db.version(16).stores({}).upgrade(async tx => {
+  await tx.table('reportRules').toCollection().modify(rule => {
+    if (rule.requiresAttention === undefined) rule.requiresAttention = false
+  })
+  await tx.table('individualReportTypes').toCollection().modify(type => {
+    if (type.requiresAttention === undefined) type.requiresAttention = false
+  })
+})

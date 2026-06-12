@@ -2,7 +2,7 @@
   <div class="view-container">
     <n-page-header title="Налаштування" />
 
-    <n-tabs v-model:value="activeTab" type="line" style="margin-top: 20px;">
+    <n-tabs v-model:value="activeTab" type="line" placement="right" style="margin-top: 20px;">
 
       <!-- ── Реквізити ── -->
       <n-tab-pane name="requisites" tab="Реквізити">
@@ -336,6 +336,6 @@ const SHORTCUTS = [
 <style scoped>
 .view-container {
   padding: 24px;
-  max-width: 800px;
+  max-width: 920px;
 }
 </style>

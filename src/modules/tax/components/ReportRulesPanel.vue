@@ -23,6 +23,7 @@
                 <n-tag size="small" round>{{ rule.shortName }}</n-tag>
                 <n-tag size="small" :type="categoryType(rule.category)">{{ categoryLabel(rule.category) }}</n-tag>
                 <n-tag size="small" type="default">{{ frequencyLabel(rule.frequency) }}</n-tag>
+                <n-tag v-if="rule.requiresAttention" size="small" type="warning">Увага</n-tag>
               </n-space>
             </template>
             <template #description>
@@ -194,6 +195,13 @@
           <n-switch v-model:value="form.active" />
         </n-form-item>
 
+        <n-form-item label="Потребує особливої уваги">
+          <n-switch v-model:value="form.requiresAttention" />
+          <n-text depth="3" style="font-size: 12px; margin-left: 10px;">
+            помаранчева мітка на дашборді для всіх клієнтів із цим звітом
+          </n-text>
+        </n-form-item>
+
       </n-form>
 
       <template #footer>
@@ -296,6 +304,7 @@ const EMPTY_FORM = () => ({
   category: 'income',
   frequency: 'annual',
   active: true,
+  requiresAttention: false,
   price: 0,
   dlDay: 28,
   dlMonth: 2,
@@ -389,7 +398,7 @@ function buildRecord() {
       : null,
   }
 
-  return { name: form.name.trim(), shortName: form.shortName.trim(), category: form.category, frequency: form.frequency, active: form.active, deadline, condition }
+  return { name: form.name.trim(), shortName: form.shortName.trim(), category: form.category, frequency: form.frequency, active: form.active, requiresAttention: form.requiresAttention, deadline, condition }
 }
 
 function applyRecord(rule) {
@@ -398,6 +407,7 @@ function applyRecord(rule) {
   form.category  = rule.category
   form.frequency = rule.frequency
   form.active    = rule.active
+  form.requiresAttention = rule.requiresAttention ?? false
 
   const d = rule.deadline
   form.dlDay    = d.day   ?? 20

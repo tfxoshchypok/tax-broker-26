@@ -24,6 +24,7 @@ body {
   --sidebar-collapsed-width: 56px;
   --header-height: 56px;
   --brand-color: #18a058;
+  --attention-color: #f0a020;
 }
 
 /* ── Заголовок сторінки: смужка + зелений текст + фон-банер ── */
@@ -49,4 +50,31 @@ body {
 .n-checkbox.n-checkbox--checked .n-checkbox__label {
   color: var(--brand-color);
   font-weight: 600;
+}
+
+/* ── Підсвічування рамки бренд-кольором при наведенні на елементи з рамкою ── */
+.n-card,
+.n-input,
+.n-base-selection,
+.client-group {
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.n-card:not(.card--overdue):not(.card--attention):hover {
+  border-color: var(--brand-color);
+}
+
+.client-group:not(.client-group--overdue):hover {
+  border-color: var(--brand-color);
+}
+
+/* Окремий рядок списку — рамка навколо конкретного елемента під курсором */
+.n-list.n-list--bordered .n-list-item {
+  margin: 2px;
+  transition: box-shadow 0.15s;
+}
+
+.n-list.n-list--bordered .n-list-item:hover {
+  box-shadow: inset 0 0 0 1px var(--brand-color);
+  border-radius: 4px;
 }

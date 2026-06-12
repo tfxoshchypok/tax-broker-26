@@ -8,6 +8,7 @@ export const DEFAULT_REPORT_RULES = [
     deadline: { type: 'fixed_date', month: 2, day: 28 },
     condition: { taxSystem: 'simplified', simplifiedGroup: [1], vatPayer: null, hasEmployees: null },
     active: true,
+    requiresAttention: false,
   },
   {
     ruleId: 'et_g2_annual',
@@ -18,6 +19,7 @@ export const DEFAULT_REPORT_RULES = [
     deadline: { type: 'fixed_date', month: 2, day: 28 },
     condition: { taxSystem: 'simplified', simplifiedGroup: [2], vatPayer: null, hasEmployees: null },
     active: true,
+    requiresAttention: false,
   },
   {
     ruleId: 'et_g3_quarterly',
@@ -28,6 +30,7 @@ export const DEFAULT_REPORT_RULES = [
     deadline: { type: 'days_after_period_end', value: 40 },
     condition: { taxSystem: 'simplified', simplifiedGroup: [3, '3vat'], vatPayer: null, hasEmployees: null },
     active: true,
+    requiresAttention: false,
   },
   {
     ruleId: 'vat_monthly',
@@ -38,6 +41,7 @@ export const DEFAULT_REPORT_RULES = [
     deadline: { type: 'day_of_next_month', day: 20 },
     condition: { taxSystem: null, simplifiedGroup: null, vatPayer: true, hasEmployees: null },
     active: true,
+    requiresAttention: false,
   },
   {
     ruleId: 'income_annual',
@@ -48,6 +52,7 @@ export const DEFAULT_REPORT_RULES = [
     deadline: { type: 'fixed_date', month: 5, day: 1 },
     condition: { taxSystem: 'general', simplifiedGroup: null, vatPayer: null, hasEmployees: null },
     active: true,
+    requiresAttention: false,
   },
   {
     ruleId: 'income_advance_q',
@@ -66,6 +71,7 @@ export const DEFAULT_REPORT_RULES = [
     },
     condition: { taxSystem: 'general', simplifiedGroup: null, vatPayer: null, hasEmployees: null },
     active: true,
+    requiresAttention: false,
   },
   {
     ruleId: 'unified_report_legal_monthly',
@@ -76,6 +82,7 @@ export const DEFAULT_REPORT_RULES = [
     deadline: { type: 'day_of_next_month', day: 20 },
     condition: { taxSystem: null, simplifiedGroup: null, clientType: 'legal', vatPayer: null, hasEmployees: true },
     active: true,
+    requiresAttention: false,
   },
   {
     ruleId: 'unified_report_fop_quarterly',
@@ -86,6 +93,7 @@ export const DEFAULT_REPORT_RULES = [
     deadline: { type: 'days_after_period_end', value: 40 },
     condition: { taxSystem: null, simplifiedGroup: null, clientType: 'fop', vatPayer: null, hasEmployees: true },
     active: true,
+    requiresAttention: false,
   },
   {
     ruleId: 'excise_monthly',
@@ -96,6 +104,7 @@ export const DEFAULT_REPORT_RULES = [
     deadline: { type: 'day_of_next_month', day: 20 },
     condition: { taxSystem: null, simplifiedGroup: null, vatPayer: null, hasEmployees: null, requiredSpecialTaxes: ['excise_tax'] },
     active: true,
+    requiresAttention: false,
   },
   {
     ruleId: 'land_annual',
@@ -106,6 +115,7 @@ export const DEFAULT_REPORT_RULES = [
     deadline: { type: 'fixed_date', month: 2, day: 20 },
     condition: { taxSystem: null, simplifiedGroup: null, vatPayer: null, hasEmployees: null, requiredSpecialTaxes: ['land_tax'] },
     active: true,
+    requiresAttention: false,
   },
   {
     ruleId: 'env_quarterly',
@@ -116,6 +126,7 @@ export const DEFAULT_REPORT_RULES = [
     deadline: { type: 'days_after_period_end', value: 40 },
     condition: { taxSystem: null, simplifiedGroup: null, vatPayer: null, hasEmployees: null, requiredSpecialTaxes: ['environmental_tax'] },
     active: true,
+    requiresAttention: false,
   },
   {
     ruleId: 'rent_quarterly',
@@ -126,5 +137,6 @@ export const DEFAULT_REPORT_RULES = [
     deadline: { type: 'days_after_period_end', value: 40 },
     condition: { taxSystem: null, simplifiedGroup: null, vatPayer: null, hasEmployees: null, requiredSpecialTaxes: ['rent_tax'] },
     active: true,
+    requiresAttention: false,
   },
 ]

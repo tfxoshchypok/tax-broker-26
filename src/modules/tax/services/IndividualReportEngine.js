@@ -39,6 +39,7 @@ export function getIndividualReports(assignments, typesById, year, month) {
       name: type.name,
       shortName: type.shortName,
       category: type.category,
+      requiresAttention: type.requiresAttention ?? false,
     }
 
     const pushIfOverlaps = (due) => {

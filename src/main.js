@@ -11,6 +11,7 @@ import { TaxPlugin }       from '@/modules/tax/index.js'
 import { BillingPlugin }   from '@/modules/billing/index.js'
 import { PaymentsPlugin }  from '@/modules/payments/index.js'
 import { DocumentsPlugin } from '@/modules/documents/index.js'
+import { DashboardPlugin } from '@/modules/dashboard/index.js'
 
 if (typeof Neutralino !== 'undefined' && window.NL_PORT) {
   Neutralino.init()
@@ -27,6 +28,7 @@ app.use(TaxPlugin,      { router })
 app.use(BillingPlugin,  { router })
 app.use(PaymentsPlugin, { router })
 app.use(DocumentsPlugin, { router })
+app.use(DashboardPlugin, { router })
 
 app.use(router)
 

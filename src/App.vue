@@ -1,5 +1,5 @@
 <template>
-  <n-config-provider :theme="currentTheme" :locale="ukUA" :date-locale="dateUkUA">
+  <n-config-provider :theme="currentTheme" :theme-overrides="themeOverrides" :locale="ukUA" :date-locale="dateUkUA">
     <n-message-provider>
       <n-dialog-provider>
         <AppLayout />
@@ -17,6 +17,16 @@ import AppLayout from '@/components/AppLayout.vue'
 
 const ui = useUiStore()
 const currentTheme = computed(() => ui.theme === 'dark' ? darkTheme : null)
+
+// На світлій темі дефолтні границі Naive UI надто бліді — підсилюємо їх
+// глобально (картки, списки, таблиці, інпути). На темній лишаємо як є.
+const LIGHT_OVERRIDES = {
+  common: {
+    borderColor: 'rgba(0, 0, 0, 0.16)',
+    dividerColor: 'rgba(0, 0, 0, 0.1)',
+  },
+}
+const themeOverrides = computed(() => ui.theme === 'dark' ? undefined : LIGHT_OVERRIDES)
 
 const backup = useBackupStore()
 onMounted(() => backup.maybeAutoBackup())

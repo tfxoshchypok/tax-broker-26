@@ -22,6 +22,7 @@
           {{ clientGroup.name }}
         </n-tag>
         <n-tag v-if="hasOverdue" type="error" size="small">Прострочено</n-tag>
+        <n-tag v-if="hasAttention && !hasOverdue" type="warning" size="small">Увага</n-tag>
       </div>
       <div class="group-actions" @click.stop>
         <n-tag size="small" :bordered="false" style="background: rgba(128,128,128,0.12);">
@@ -61,7 +62,7 @@
 
     <div v-if="expanded" class="group-body">
       <!-- List view -->
-      <template v-if="viewMode === 'list'">
+      <div v-if="viewMode === 'list'" class="report-list">
         <TaxReportRow
           v-for="report in sortedReports"
           :key="report.rule.id + report.period"
@@ -71,7 +72,7 @@
           @ignore="$emit('ignore', { client: group.client, report: $event })"
           @notes="$emit('notes', $event)"
         />
-      </template>
+      </div>
 
       <!-- Card/Grid view -->
       <div v-else class="card-grid">
@@ -140,6 +141,10 @@ const hasOverdue = computed(() =>
   props.group.reports.some(r => r.status !== 'submitted' && r.status !== 'ignored' && r.dueDate < Date.now())
 )
 
+const hasAttention = computed(() =>
+  props.group.reports.some(r => r.rule.requiresAttention && r.status !== 'submitted' && r.status !== 'ignored')
+)
+
 const sortedReports = computed(() => {
   return [...props.group.reports].sort((a, b) => {
     const aOverdue = a.status !== 'submitted' && a.status !== 'ignored' && a.dueDate < Date.now()
@@ -170,7 +175,7 @@ const reportsWord = computed(() => pluralize(props.group.reports.length, REPORT_
 
 <style scoped>
 .client-group {
-  border: 1px solid rgba(128, 128, 128, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.16);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -185,12 +190,13 @@ const reportsWord = computed(() => pluralize(props.group.reports.length, REPORT_
   justify-content: space-between;
   padding: 10px 16px;
   cursor: pointer;
-  background: rgba(128, 128, 128, 0.04);
+  background: rgba(24, 160, 88, 0.09);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   transition: background 0.15s;
 }
 
 .group-header:hover {
-  background: rgba(128, 128, 128, 0.08);
+  background: rgba(24, 160, 88, 0.14);
 }
 
 .group-title {
@@ -241,7 +247,15 @@ const reportsWord = computed(() => pluralize(props.group.reports.length, REPORT_
 
 .group-body {
   padding: 8px 0;
-  border-top: 1px solid rgba(128, 128, 128, 0.12);
+}
+
+.report-list {
+  padding: 0 12px;
+}
+
+.report-list :deep(.report-row:not(:last-child)) {
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
 }
 
 .card-grid {

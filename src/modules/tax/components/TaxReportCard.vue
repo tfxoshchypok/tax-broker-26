@@ -1,10 +1,11 @@
 <template>
-  <n-card size="small" :class="{ 'card--overdue': isOverdue, 'card--ignored': report.status === 'ignored' }">
+  <n-card size="small" :class="{ 'card--overdue': isOverdue, 'card--ignored': report.status === 'ignored', 'card--attention': report.rule.requiresAttention }">
     <div class="card-content">
-      <div class="card-header">
+      <div class="card-badges">
         <TaxReportStatusBadge :status="report.status" />
-        <span class="card-name">{{ report.rule.shortName }}</span>
+        <n-tag v-if="report.rule.requiresAttention" type="warning" size="small">Увага</n-tag>
       </div>
+      <div class="card-name">{{ report.rule.shortName }}</div>
 
       <div class="card-due" :class="{ 'card-due--overdue': isOverdue }">
         до {{ formatDate(report.dueDate) }}
@@ -44,7 +45,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { NCard, NButton, NIcon } from 'naive-ui'
+import { NCard, NButton, NIcon, NTag } from 'naive-ui'
 import { RefreshOutline, BanOutline } from '@vicons/ionicons5'
 import TaxReportStatusBadge from './TaxReportStatusBadge.vue'
 
@@ -84,6 +85,11 @@ function formatDate(ts) {
   border-color: #d03050 !important;
 }
 
+.card--attention {
+  border-color: var(--attention-color) !important;
+  background: rgba(240, 160, 32, 0.06);
+}
+
 .card--ignored {
   opacity: 0.45;
 }
@@ -100,15 +106,18 @@ function formatDate(ts) {
   height: 100%;
 }
 
-.card-header {
+.card-badges {
   display: flex;
   align-items: center;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .card-name {
   font-weight: 600;
   font-size: 15px;
+  line-height: 1.3;
+  word-break: break-word;
 }
 
 .card-due {
